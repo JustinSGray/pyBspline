@@ -19,7 +19,7 @@ C = random_sample((10,2))
 pylab.scatter(*zip(*C),c='r',marker='o')
 
 bs = Bspline(C,4)
-X = linspace(0,1,500)
+X = linspace(0,1,5000)
 pylab.plot(*zip(*bs(X)))
 
 pylab.show()
