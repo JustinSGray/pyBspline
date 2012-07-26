@@ -46,6 +46,6 @@ class Bspline(object):
         return dstack((X,Y))[0]
         
         
-"""dX/dC??"""        
+ 
           
                
