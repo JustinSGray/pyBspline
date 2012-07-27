@@ -1,4 +1,5 @@
 from numpy import linspace, hstack, dstack, less ,less_equal, logical_and, array,empty
+from scipy.optimize import fsolve
 
 class Bspline(object): 
     def __init__(self,controls,order=3): #controls is a list of tuples  
@@ -9,7 +10,16 @@ class Bspline(object):
         self.knots =  hstack(([0,]*(self.degree),
                               hstack((linspace(0,1,self.n-self.order+2),[1,]*(self.degree)))
                              ))
-       
+     
+    def map(self,X):
+        """returns the parametric coordinate that matches the given x location""" 
+        
+        def func(x,target=0):
+            return self(x)[:,0] - target
+        try:     
+            return array([fsolve(func,[0,],args=(x,)) for x in X])[:,0]
+        except TypeError:
+            return fsolve(func,[0,],args=(X,))   
         
     def b_jn(self,j,n,t):         
         t_j   = self.knots[j]
@@ -34,10 +44,11 @@ class Bspline(object):
         
         return B
         
+    #dirty hack to fix some weird corner case that shows up    
     def b_jn_wrapper(self,j,n,t): 
         B = self.b_jn(j,n,t)
         if j == self.n-1: 
-            B[t==1]=1    
+            B[t==1]=1 #anywhere t=1, set B = 1
         return B 
         
     def __call__(self,t): 
