@@ -1,8 +1,10 @@
 from matplotlib import pylab
 
 from numpy.random import random_sample
-from numpy import linspace, array, zeros
+from numpy import linspace, array, zeros, ones
 from bspline import Bspline
+
+import time
 
 #test points
 """
@@ -33,15 +35,16 @@ pylab.scatter(X,Y,c='g',label="base geom")
 #generate some control points
 n_C = 4
 C_x = linspace(0,10,n_C)
-C_y = zeros(n_C)
-
-#move the control points
-C_y += array([0,0,4,0])
-C_x += array([0,0,4,4])
+C_y = ones(n_C)
 C = array(zip(C_x,C_y))
 
-bs = Bspline(C,3) #make the spline instance
-X_map = bs.map(X) #get the mapping from parametric space to physical space
+start_time = time.time()
+bs = Bspline(C,X,3) #make the spline instance
+print "Initial Bspline: ",time.time()-start_time
+
+start_time = time.time()
+X_map = bs.find(X) #get the mapping from parametric space to physical space
+print "Points Calc: ",time.time()-start_time
 
 #space them up to make the graph easier to read
 d_y = 150
@@ -56,12 +59,12 @@ pylab.scatter(C_x,C_y+d_y,c="r",label="control points",s=50)
 
 
 #apply the scaling to the points
-X_bar = map_points[:,0]
-Y_bar = Y*(map_points[:,1]+1)
-pylab.scatter(X_bar,Y_bar,c='g',marker="^",label="ffd geom") 
+#move the control points
+C_y += array([0,0,4,0])
+C_x += array([0,0,0,4])
+C = array(zip(C_x,C_y))
+X_bar = bs.calc(C)
+pylab.scatter(X_bar[:,0],Y*X_bar[:,1],c='g',marker="^",label="ffd geom") 
 
-
-
-
-pylab.legend(loc=3)
+#pylab.legend(loc=3)
 pylab.show()

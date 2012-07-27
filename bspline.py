@@ -1,8 +1,11 @@
-from numpy import linspace, hstack, dstack, less ,less_equal, logical_and, array,empty
-from scipy.optimize import fsolve
+from numpy import linspace, hstack, dstack, less ,less_equal, logical_and, \
+    array, empty, matrix, dot
+    
+from scipy.optimize import fsolve as fsolve
+from scipy.sparse import csr_matrix
 
 class Bspline(object): 
-    def __init__(self,controls,order=3): #controls is a list of tuples  
+    def __init__(self,controls,points,order=3): #controls is a list of tuples  
         self.controls = controls
         self.order = order
         self.degree = order-1
@@ -10,16 +13,29 @@ class Bspline(object):
         self.knots =  hstack(([0,]*(self.degree),
                               hstack((linspace(0,1,self.n-self.order+2),[1,]*(self.degree)))
                              ))
+         
+                          
+        #pre-calculate the B matrix
+        n_p = points.shape[0]
+        self.B = matrix(empty((n_p,self.n)))
+        
+        for i,p in enumerate(points): 
+            t = self.find(p)
+            for j in range(0,self.n): 
+                self.B[i,j] = self.b_jn_wrapper(j,self.degree,t)
+        self.B = csr_matrix(self.B)        
+    def calc(self,C):
+        return array(self.B.dot(C))                                   
      
-    def map(self,X):
+    def find(self,X):
         """returns the parametric coordinate that matches the given x location""" 
         
         def func(x,target=0):
             return self(x)[:,0] - target
         try:     
-            return array([fsolve(func,[0,],args=(x,)) for x in X])[:,0]
+            return array([fsolve(lambda f:func(f,x),[0,]) for x in X])[:,0]
         except TypeError:
-            return fsolve(func,[0,],args=(X,))   
+            return fsolve(lambda f:func(f,X),[0,])   
         
     def b_jn(self,j,n,t):         
         t_j   = self.knots[j]
@@ -50,10 +66,13 @@ class Bspline(object):
         if j == self.n-1: 
             B[t==1]=1 #anywhere t=1, set B = 1
         return B 
+                
         
     def __call__(self,t): 
-        X = sum([self.controls[i,0]*self.b_jn_wrapper(i,self.degree,t) for i in range(0,self.n)])
-        Y = sum([self.controls[i,1]*self.b_jn_wrapper(i,self.degree,t) for i in range(0,self.n)])
+        rng = range(0,self.n)
+        b = [self.b_jn_wrapper(i,self.degree,t) for i in rng]
+        X = dot(self.controls[:,0],b)
+        Y = dot(self.controls[:,1],b)
         return dstack((X,Y))[0]
         
         
