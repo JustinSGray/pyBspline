@@ -19,7 +19,6 @@ C = array([[0.08,0.08],
            
 C = random_sample((10,2))
 """
-#pylab.scatter(*zip(*C),c='r',marker='o')
 
 n_X = 50
 X = linspace(0,10,n_X)
@@ -30,7 +29,8 @@ def g(X):
     return X**2+2*X+5
     
 Y = g(X)
-pylab.scatter(X,Y,c='g',label="base geom") 
+
+
 
 #generate some control points
 n_C = 4
@@ -47,15 +47,10 @@ X_map = bs.find(X) #get the mapping from parametric space to physical space
 print "Points Calc: ",time.time()-start_time
 
 #space them up to make the graph easier to read
-d_y = 150
-
 U = linspace(0,1,200) #parametric space
-points = bs(U)
-pylab.plot(points[:,0],points[:,1]+d_y,c='b',label="b-spline")
 
-map_points = bs(X_map)
-pylab.scatter(map_points[:,0],map_points[:,1]+d_y,c='b',label='U mapping points')
-pylab.scatter(C_x,C_y+d_y,c="r",label="control points",s=50) 
+
+
 
 
 #apply the scaling to the points
@@ -64,7 +59,21 @@ C_y += array([0,0,4,0])
 C_x += array([0,0,0,4])
 C = array(zip(C_x,C_y))
 X_bar = bs.calc(C)
-pylab.scatter(X_bar[:,0],Y*X_bar[:,1],c='g',marker="^",label="ffd geom") 
 
-#pylab.legend(loc=3)
+points = bs(U)
+map_points = bs(X_map)
+
+pylab.subplot(2,1,1)
+pylab.plot(points[:,0],points[:,1],c='b',label="b-spline")
+pylab.scatter(map_points[:,0],map_points[:,1],c='b',label='U mapping points')
+pylab.scatter(C_x,C_y,c="r",label="control points",s=50) 
+pylab.axis([-2,16,0,10])
+pylab.legend(loc=2)
+
+pylab.subplot(2,1,2)
+pylab.scatter(X,Y,c='g',label="orig. geom")
+pylab.scatter(X_bar[:,0],Y*X_bar[:,1],c='g',marker="^",label="ffd geom") 
+pylab.axis([-2,16,0,200])
+
+pylab.legend()
 pylab.show()

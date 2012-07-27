@@ -1,7 +1,7 @@
 from numpy import linspace, hstack, dstack, less ,less_equal, logical_and, \
     array, empty, matrix, dot
     
-from scipy.optimize import newton as fsolve
+from scipy.optimize import fsolve, newton
 from scipy.sparse import csr_matrix
 
 class Bspline(object): 
@@ -14,7 +14,7 @@ class Bspline(object):
                               hstack((linspace(0,1,self.n-self.order+2),[1,]*(self.degree)))
                              ))
          
-                          
+        self.max_x = max(points)                  
         #pre-calculate the B matrix
         n_p = points.shape[0]
         self.B = matrix(empty((n_p,self.n)))
@@ -23,19 +23,20 @@ class Bspline(object):
             t = self.find(p)
             for j in range(0,self.n): 
                 self.B[i,j] = self.b_jn_wrapper(j,self.degree,t)
-        self.B = csr_matrix(self.B)        
+        self.B = csr_matrix(self.B)
+                    
     def calc(self,C):
-        return array(self.B.dot(C))                                   
+        self.controls = C
+        return array(self.B.dot(C))                                    
      
     def find(self,X):
         """returns the parametric coordinate that matches the given x location""" 
         
-        def func(x,target=0):
-            return self(x)[:,0] - target
         try:     
-            return array([fsolve(lambda f:func(f,x),[0,]) for x in X])[:,0]
+            return array([fsolve(lambda f: self(f)[:,0][0] - x,[x/self.max_x,],xtol=1e-5) for x in X])[:,0]
         except TypeError:
-            return fsolve(lambda f:func(f,X),[0,])   
+            return fsolve(lambda f: self(f)[:,0] - X,[X/self.max_x,],xtol=1e-5)
+                 
         
     def b_jn(self,j,n,t):         
         t_j   = self.knots[j]
@@ -64,7 +65,10 @@ class Bspline(object):
     def b_jn_wrapper(self,j,n,t): 
         B = self.b_jn(j,n,t)
         if j == self.n-1: 
-            B[t==1]=1 #anywhere t=1, set B = 1
+            try: 
+                B[t==1]=1 #anywhere t=1, set B = 1
+            except TypeError: 
+                B = 1    
         return B 
                 
         
