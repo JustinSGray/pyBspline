@@ -1,7 +1,7 @@
 from numpy import linspace, hstack, dstack, less ,less_equal, logical_and, \
     array, empty, matrix, dot
     
-from scipy.optimize import fsolve as fsolve
+from scipy.optimize import newton as fsolve
 from scipy.sparse import csr_matrix
 
 class Bspline(object): 
