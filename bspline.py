@@ -14,20 +14,30 @@ class Bspline(object):
                               hstack((linspace(0,1,self.n-self.order+2),[1,]*(self.degree)))
                              ))
          
-        self.max_x = max(points)                  
+        self.max_x = max(points) 
+        self.B = self._calc_jacobian(points)
+   
+   def _calc_jacobian(self,points):                       
         #pre-calculate the B matrix
         n_p = points.shape[0]
-        self.B = matrix(empty((n_p,self.n)))
+        B = matrix(empty((n_p,self.n)))
         
         for i,p in enumerate(points): 
             t = self.find(p)
             for j in range(0,self.n): 
-                self.B[i,j] = self.b_jn_wrapper(j,self.degree,t)
-        self.B = csr_matrix(self.B)
+                B[i,j] = self.b_jn_wrapper(j,self.degree,t)
+                
+        B = csr_matrix(self.B)
+        
+        return B
                     
-    def calc(self,C):
+    def calc(self,C,points=None):
         self.controls = C
-        return array(self.B.dot(C))                                    
+        if points: 
+            self.B = self._calc_jacobian(points)
+            
+        return array(self.B.dot(C))     
+                    
      
     def find(self,X):
         """returns the parametric coordinate that matches the given x location""" 
@@ -70,7 +80,6 @@ class Bspline(object):
             except TypeError: 
                 B = 1    
         return B 
-                
         
     def __call__(self,t): 
         rng = range(0,self.n)
@@ -78,6 +87,37 @@ class Bspline(object):
         X = dot(self.controls[:,0],b)
         Y = dot(self.controls[:,1],b)
         return dstack((X,Y))[0]
+        
+        
+class BsplineGeom(Bspline): #GEM API(ish) extention to Bspline
+
+     def get_params(self):
+        """ returns a dictionary of key,value pairs representing the control points""" 
+        
+        params = []
+        self.param_map = {}
+        for i,c in enumerate(self.controls): 
+            name = 'C%d'%i
+            params.append((name,c))
+            self.param_map[name] = i
+        
+        return dict(params) 
+        
+    def set_params(self,param_dict):
+        """ sets all of the parameters based on the dictionary given""" 
+        
+        for name,v in param_dict.iteritems(): 
+            self.set_param(k,v)
+        
+    def set_param(self,name,value): 
+        """ sets a specific parameter to the given value""" 
+        try: 
+            index = self.param_map[name]
+            self.controls[index] = value
+        except AttributeError: #no param_map exists yet
+            self.get_params()  
+            index = self.param_map[name]
+            self.controls[index] = value        
         
         
  

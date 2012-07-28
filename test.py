@@ -20,7 +20,7 @@ C = array([[0.08,0.08],
 C = random_sample((10,2))
 """
 
-n_X = 50
+n_X = 7000
 X = linspace(0,10,n_X)
 
 def g(X):
@@ -48,8 +48,6 @@ print "Points Calc: ",time.time()-start_time
 
 #space them up to make the graph easier to read
 U = linspace(0,1,200) #parametric space
-
-
 
 
 
