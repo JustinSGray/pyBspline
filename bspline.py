@@ -14,22 +14,22 @@ class Bspline(object):
                               hstack((linspace(0,1,self.n-self.order+2),[1,]*(self.degree)))
                              ))
          
-        self.max_x = max(points) 
+        self.max_x = max(points[:,0]) 
         self.B = self._calc_jacobian(points)
    
-   def _calc_jacobian(self,points):                       
+    def _calc_jacobian(self,points):                       
         #pre-calculate the B matrix
         n_p = points.shape[0]
         B = matrix(empty((n_p,self.n)))
         
         for i,p in enumerate(points): 
-            t = self.find(p)
+            t = self.find(p[0])
             for j in range(0,self.n): 
                 B[i,j] = self.b_jn_wrapper(j,self.degree,t)
                 
-        B = csr_matrix(self.B)
+        self.B = csr_matrix(B)
         
-        return B
+        return self.B
                     
     def calc(self,C,points=None):
         self.controls = C
@@ -91,7 +91,7 @@ class Bspline(object):
         
 class BsplineGeom(Bspline): #GEM API(ish) extention to Bspline
 
-     def get_params(self):
+    def get_params(self):
         """ returns a dictionary of key,value pairs representing the control points""" 
         
         params = []
