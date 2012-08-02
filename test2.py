@@ -1,12 +1,13 @@
 import numpy as np
 import pylab
+from mpl_toolkits.mplot3d import axes3d
 
 from ffd import Shell
 
 
 #Baseline geometry
 X = np.linspace(0,10,10)
-Y1 = np.ones((10,))
+Y1 = 300*np.ones((10,))
 Y2 = .5*Y1
 
 P_upper = np.array(zip(X,Y1))
@@ -28,12 +29,12 @@ Ct = np.array(zip(Ct_x,Ct_y))
 shell = Shell(P_upper,P_lower,Cc,Ct)
 
 #move the control points for centerline
-deltaC_y = np.array([0,0,2,0])
+deltaC_y = np.array([0,2,0,0])
 deltaC_x = np.array([0,0,0,1])
 deltaCc = np.array(zip(deltaC_x,deltaC_y))
 
 #move the control points for thickness (only in y direction)
-deltaC_y = np.array([0,0,0,0])
+deltaC_y = np.array([-.1,-.15,.1,0])
 deltaC_x = np.array([0,0,0,0])
 deltaCt = np.array(zip(deltaC_x,deltaC_y))
 
@@ -70,4 +71,48 @@ pylab.plot(shell.Pl_bar[:,0],shell.Pl_bar[:,1],c='y')
 pylab.legend()
 
 
+fig = pylab.figure()
+ax = fig.add_subplot(111, projection='3d')
+
+pu = shell.Pu_bar[0,:]
+n_theta = 20
+Theta = np.linspace(0,2*np.pi,n_theta)
+
+
+#outer surface
+Xo = np.outer(shell.Pu_bar[:,0],np.ones(n_theta))
+Yo = np.outer(shell.Pu_bar[:,1],np.sin(Theta))
+Zo = np.outer(shell.Pu_bar[:,1],np.cos(Theta))
+
+Xi = np.outer(shell.Pl_bar[:,0],np.ones(n_theta))
+Yi = np.outer(shell.Pl_bar[:,1],np.sin(Theta))
+Zi = np.outer(shell.Pl_bar[:,1],np.cos(Theta))
+
+ax.plot_surface(Xo,Yo,Zo,rstride=1, cstride=1, alpha=0.2)
+ax.plot_surface(Xi,Yi,Zi,rstride=1, cstride=1, alpha=1.0,color='r')
+
+"""
+for xu,yu,xl,yl in zip(shell.Pu_bar[:,0],shell.Pu_bar[:,1],
+                       shell.Pl_bar[:,0],shell.Pl_bar[:,1]): 
+    X = xu*np.ones(n_theta)
+    Y = yu*np.ones(n_theta)
+    ax.scatter(X,Y*np.cos(Theta),Y*np.sin(Theta))
+    X = xl*np.ones(n_theta)
+    Y = yl*np.ones(n_theta)
+    ax.scatter(X,Y*np.cos(Theta),Y*np.sin(Theta),c='r')
+    continue
+    
+    X_bar,Y_bar = np.meshgrid(X,Y)
+    #print Y_bar
+    #print 
+    #print np.cos(Theta)
+    #print 
+    #print 
+    Y_bar = Y_bar*np.cos(Theta)
+    #print Y_bar
+    #exit()
+    Z = Y_bar.T*np.sin(Theta)
+    ax.plot_wireframe(X_bar, Y_bar, Z)
+    break
+"""        
 pylab.show()

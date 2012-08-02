@@ -15,8 +15,6 @@ class Body(object):
         
         self.y_mag = np.average(geom_points[:,1])
 
-        
-        
     def deform(self,delta_C): 
         """returns new point locations for the given motion of the control 
         points"""         
@@ -26,10 +24,13 @@ class Body(object):
         self.P_bar = self.P.copy()
         self.P_bar[:,0] = delta_P[:,0]
         self.P_bar[:,1] = self.P[:,1]+self.y_mag*delta_P[:,1] 
+        
+        #calculate derivatives
+        self.dPx_barqdC = self.B
+        self.dPy_bardC = self.y_max*self.B
        
         return self.P_bar
-          
-            
+                    
         
 class Shell(object): 
     """FFD class for shell bodies which have two connected surfaces"""
@@ -52,8 +53,6 @@ class Shell(object):
         
         self.y_mag = np.average(upper_points[:,1])
 
-
-        
     def deform(self,delta_Cc,delta_Ct): 
         """returns new point locations for the given motion of the control 
         points for center-line and thickness"""      
@@ -70,7 +69,7 @@ class Shell(object):
         self.Pl_bar = self.Pl.copy()
         
         self.Pu_bar[:,0] = delta_Pc_u[:,0]
-        self.Pu_bar[:,1] = self.Pu[:,1]+delta_Pc_u[:,1]+delta_Pt_u[:,1]
+        self.Pu_bar[:,1] = self.Pu[:,1]+self.y_mag*(delta_Pc_u[:,1]+delta_Pt_u[:,1])
         
         self.Pl_bar[:,0] = delta_Pc_l[:,0]
         self.Pl_bar[:,1] = self.Pl[:,1]+self.y_mag*(delta_Pc_l[:,1]-delta_Pt_l[:,1])
