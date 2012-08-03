@@ -26,8 +26,8 @@ class Body(object):
         self.P_bar[:,1] = self.P[:,1]+self.y_mag*delta_P[:,1] 
         
         #calculate derivatives
-        self.dPx_barqdC = self.B
-        self.dPy_bardC = self.y_max*self.B
+        self.dPx_barqdC = self.bs.B
+        self.dPy_bardC = self.y_mag*self.bs.B
        
         return self.P_bar
                     
@@ -35,21 +35,21 @@ class Body(object):
 class Shell(object): 
     """FFD class for shell bodies which have two connected surfaces"""
     
-    def __init__(self,upper_points,lower_points,center_line_controls,thickness_controls): 
+    def __init__(self,upper_points,lower_points,center_iine_controls,thickness_controls): 
     
-        self.Pu = upper_points
-        self.Pl = lower_points
-        self.Pu_bar = upper_points.copy()
-        self.Pl_bar = lower_points.copy()
+        self.Po = upper_points
+        self.Pi = lower_points
+        self.Po_bar = upper_points.copy()
+        self.Pi_bar = lower_points.copy()
         
-        self.Cc = center_line_controls
+        self.Cc = center_iine_controls
         self.Ct = thickness_controls 
          
-        self.bsc_u = Bspline(self.Cc,upper_points)
-        self.bsc_l = Bspline(self.Cc,lower_points)
+        self.bsc_o = Bspline(self.Cc,upper_points)
+        self.bsc_i = Bspline(self.Cc,lower_points)
         
-        self.bst_u = Bspline(self.Ct,upper_points)
-        self.bst_l = Bspline(self.Ct,lower_points)
+        self.bst_o = Bspline(self.Ct,upper_points)
+        self.bst_i = Bspline(self.Ct,lower_points)
         
         self.y_mag = np.average(upper_points[:,1])
 
@@ -58,21 +58,21 @@ class Shell(object):
         points for center-line and thickness"""      
         
         self.Cc_bar = self.Cc+delta_Cc
-        delta_Pc_u = self.bsc_u.calc(self.Cc_bar)
-        delta_Pc_l = self.bsc_l.calc(self.Cc_bar)
+        delta_Pc_o = self.bsc_o.calc(self.Cc_bar)
+        delta_Pc_i = self.bsc_i.calc(self.Cc_bar)
         
         self.Ct_bar = self.Ct+delta_Ct
-        delta_Pt_u = self.bst_u.calc(self.Ct_bar)
-        delta_Pt_l = self.bst_l.calc(self.Ct_bar)
+        delta_Pt_o = self.bst_o.calc(self.Ct_bar)
+        delta_Pt_i = self.bst_i.calc(self.Ct_bar)
 
-        self.Pu_bar = self.Pu.copy()
-        self.Pl_bar = self.Pl.copy()
+        self.Po_bar = self.Po.copy()
+        self.Pi_bar = self.Pi.copy()
         
-        self.Pu_bar[:,0] = delta_Pc_u[:,0]
-        self.Pu_bar[:,1] = self.Pu[:,1]+self.y_mag*(delta_Pc_u[:,1]+delta_Pt_u[:,1])
+        self.Po_bar[:,0] = delta_Pc_o[:,0]
+        self.Po_bar[:,1] = self.Po[:,1]+self.y_mag*(delta_Pc_o[:,1]+delta_Pt_o[:,1])
         
-        self.Pl_bar[:,0] = delta_Pc_l[:,0]
-        self.Pl_bar[:,1] = self.Pl[:,1]+self.y_mag*(delta_Pc_l[:,1]-delta_Pt_l[:,1])
+        self.Pi_bar[:,0] = delta_Pc_i[:,0]
+        self.Pi_bar[:,1] = self.Pi[:,1]+self.y_mag*(delta_Pc_i[:,1]-delta_Pt_i[:,1])
         
-        return self.Pu_bar,self.Pl_bar
+        return self.Po_bar,self.Pi_bar
         
