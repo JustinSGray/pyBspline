@@ -34,16 +34,13 @@ deltaC_x = array([0,0,0,0])
 deltaC = array(zip(deltaC_x,deltaC_r))
 body.deform(deltaC)
 
+fig = pylab.figure()
+ax = fig.add_subplot(2,1,1)
+body.plot_spline(ax)
+ax.legend(loc=2)
 
-pylab.subplot(2,1,1)
-map_points = body.bs(linspace(0,1,100))
-pylab.plot(map_points[:,0],map_points[:,1],c='b',label="b-spline")
-pylab.scatter(body.C_bar[:,0],body.C_bar[:,1],c="r",label="control points",s=50) 
-pylab.legend(loc=2)
-
-pylab.subplot(2,1,2)
-pylab.scatter(body.P[:,0],body.P[:,1],c='g',label="orig. geom")
-pylab.scatter(body.P_bar[:,0],body.P_bar[:,1],c='g',marker="^",label="ffd geom") 
+ax = fig.add_subplot(2,1,2)
+body.plot_geom(ax)
 
 pylab.legend()
 pylab.show()

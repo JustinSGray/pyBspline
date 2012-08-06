@@ -86,38 +86,7 @@ class Bspline(object):
         b = [self.b_jn_wrapper(i,self.degree,t) for i in rng]
         X = dot(self.controls[:,0],b)
         Y = dot(self.controls[:,1],b)
-        return dstack((X,Y))[0]
-        
-        
-class BsplineGeom(Bspline): #GEM API(ish) extention to Bspline
-
-    def get_params(self):
-        """ returns a dictionary of key,value pairs representing the control points""" 
-        
-        params = []
-        self.param_map = {}
-        for i,c in enumerate(self.controls): 
-            name = 'C%d'%i
-            params.append((name,c))
-            self.param_map[name] = i
-        
-        return dict(params) 
-        
-    def set_params(self,param_dict):
-        """ sets all of the parameters based on the dictionary given""" 
-        
-        for name,v in param_dict.iteritems(): 
-            self.set_param(k,v)
-        
-    def set_param(self,name,value): 
-        """ sets a specific parameter to the given value""" 
-        try: 
-            index = self.param_map[name]
-            self.controls[index] = value
-        except AttributeError: #no param_map exists yet
-            self.get_params()  
-            index = self.param_map[name]
-            self.controls[index] = value        
+        return dstack((X,Y))[0]     
         
         
  

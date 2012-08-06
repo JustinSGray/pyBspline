@@ -41,34 +41,22 @@ deltaCt = np.array(zip(deltaC_x,deltaC_r))
 #calculate new P's
 shell.deform(deltaCc,deltaCt)
 
-pylab.subplot(3,1,1)
-pylab.title('Centerline b-sPiine Interpolant')
-pylab.scatter(Cc[:,0]+deltaCc[:,0],Cc[:,1]+deltaCc[:,1],c='red',s=50,label="Control Points")
-map_points = shell.bsc_o(np.linspace(0,1,100))
-pylab.plot(map_points[:,0],map_points[:,1],label="b-sPiine curve")
-pylab.legend(loc=2)
+fig = pylab.figure()
+ax = fig.add_subplot(3,1,1)
+ax.set_title('Centerline b-sPiine Interpolant')
+shell.plot_centerline_spline(ax)
+ax.legend(loc=2)
 
-pylab.subplot(3,1,2)
-pylab.title('Thickness b-sPiine Interpolant')
-pylab.scatter(Ct[:,0]+deltaCt[:,0],Ct[:,1]+deltaCt[:,1],c='red',s=50,label="Control Points")
-map_points = shell.bst_o(np.linspace(0,1,100))
-pylab.plot(map_points[:,0],map_points[:,1],label="b-sPiine curve")
-pylab.legend(loc=2)
+ax = fig.add_subplot(3,1,2)
+ax.set_title('Thickness b-sPiine Interpolant')
+shell.plot_thickness_spline(ax)
+ax.legend(loc=2)
 
-pylab.subplot(3,1,3)
-pylab.title('Initial and Final Geometries')
+ax = fig.add_subplot(3,1,3)
+ax.set_title('Initial and Final Geometries')
+shell.plot_geom(ax)
 
-pylab.scatter(shell.Po[:,0],shell.Po[:,1],c='g',s=50,label="initial geom")
-pylab.scatter(shell.Pi[:,0],shell.Pi[:,1],c='g',s=50)
-pylab.plot(shell.Po[:,0],shell.Po[:,1],c='g') 
-pylab.plot(shell.Pi[:,0],shell.Pi[:,1],c='g') 
-
-pylab.scatter(shell.Po_bar[:,0],shell.Po_bar[:,1],c='y',s=50,label="ffd geom") 
-pylab.scatter(shell.Pi_bar[:,0],shell.Pi_bar[:,1],c='y',s=50) 
-pylab.plot(shell.Po_bar[:,0],shell.Po_bar[:,1],c='y') 
-pylab.plot(shell.Pi_bar[:,0],shell.Pi_bar[:,1],c='y') 
-
-pylab.legend()
+ax.legend()
 
 
 fig = pylab.figure()
