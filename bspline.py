@@ -5,7 +5,7 @@ from scipy.optimize import fsolve, newton
 from scipy.sparse import csr_matrix
 
 class Bspline(object): 
-    def __init__(self,controls,points,order=3): #controls is a list of tuples  
+    def __init__(self,controls,points,order=3): #controls and points are 2-d arrays of points  
         self.controls = controls
         self.order = order
         self.degree = order-1
@@ -27,8 +27,8 @@ class Bspline(object):
             for j in range(0,self.n): 
                 B[i,j] = self.b_jn_wrapper(j,self.degree,t)
                 
-        self.B = csr_matrix(B)
-        
+        #self.B = csr_matrix(B)
+        self.B = B
         return self.B
                     
     def calc(self,C,points=None):
