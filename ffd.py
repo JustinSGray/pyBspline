@@ -78,6 +78,7 @@ class Shell(object):
         self.Pi = lower_points
         self.Po_bar = upper_points.copy()
         self.Pi_bar = lower_points.copy()
+        self.name = name
         
         self.Cc = center_iine_controls
         self.Ct = thickness_controls 
@@ -126,23 +127,23 @@ class Shell(object):
     
     def plot_geom(self,ax,initial_color='g',ffd_color='k'):
         if initial_color: 
-            ax.scatter(self.Po[:,0],self.Po[:,1],c=initial_color,s=50,label="initial geom")
+            ax.scatter(self.Po[:,0],self.Po[:,1],c=initial_color,s=50,label="%s initial geom"%self.name)
             ax.scatter(self.Pi[:,0],self.Pi[:,1],c=initial_color,s=50)
             ax.plot(self.Po[:,0],self.Po[:,1],c=initial_color) 
             ax.plot(self.Pi[:,0],self.Pi[:,1],c=initial_color) 
         if ffd_color: 
-            ax.scatter(self.Po_bar[:,0],self.Po_bar[:,1],c=ffd_color,s=50,label="ffd geom") 
+            ax.scatter(self.Po_bar[:,0],self.Po_bar[:,1],c=ffd_color,s=50,label="%s ffd geom"%self.name) 
             ax.scatter(self.Pi_bar[:,0],self.Pi_bar[:,1],c=ffd_color,s=50) 
             ax.plot(self.Po_bar[:,0],self.Po_bar[:,1],c=ffd_color) 
             ax.plot(self.Pi_bar[:,0],self.Pi_bar[:,1],c=ffd_color) 
 
     def plot_centerline_spline(self,ax,point_color='r',line_color='b'):
-        ax.scatter(self.Cc_bar[:,0],self.Cc_bar[:,1],c=point_color,s=50,label="Centerline Control Points")
+        ax.scatter(self.Cc_bar[:,0],self.Cc_bar[:,1],c=point_color,s=50,label="%s Centerline Control Points"%self.name)
         map_points = self.bsc_o(np.linspace(0,1,100))
         ax.plot(map_points[:,0],map_points[:,1],label="Centerline b-spline Curve",c=line_color)
 
     def plot_thickness_spline(self,ax,point_color='r',line_color='b'):
-        ax.scatter(self.Ct_bar[:,0],self.Ct_bar[:,1],c=point_color,s=50,label="Thickness Control Points")
+        ax.scatter(self.Ct_bar[:,0],self.Ct_bar[:,1],c=point_color,s=50,label="%s Thickness Control Points"%self.name)
         map_points = self.bsc_o(np.linspace(0,1,100))
         ax.plot(map_points[:,0],map_points[:,1],label="Thickness b-spline Curve",c=line_color)
 
