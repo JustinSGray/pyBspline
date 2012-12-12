@@ -32,7 +32,8 @@ def _parse(str):
             pass
     return False,False    
 
-def main(f): 
+def import(f): 
+    """expects a filelike object, and returns a nx12 array. One row for every facet in the STL file."""
     
     line = f.readline()
     stack = []
@@ -58,24 +59,11 @@ def main(f):
     return np.array(facets)
 
 if __name__ == '__main__':
-    import StringIO
-
-    facet_str = """  facet normal  3.386098e-002  9.979581e-001  5.415772e-002
-    outer loop
-      vertex    3.186515e+003  2.196210e+000  0.000000e+000
-      vertex    3.186260e+003  2.204885e+000  0.000000e+000
-      vertex    3.186270e+003  2.191594e+000  2.385749e-001
-    endloop
-  endfacet"""
-
-    facet_file = StringIO.StringIO(facet_str)
 
     facet_file = open('Centerbody.stl','rU')
-    
-    #s = "      vertex    3.186515e+003  2.196210e+000  0.000000e+000"
-    #print vertex.parseString(s)
 
-    print main(facet_file).shape
+    
+    print np.reshape(import(facet_file),(-1,1)).shape
 
 
 
