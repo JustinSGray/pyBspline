@@ -3,8 +3,35 @@ import numpy as np
 from bspline import Bspline
 
 
-class Body(object): 
-    """FFD class for solid bodyies which only have one surface""" 
+class Coordinates(object): 
+    """transforms points from Cartesian space to cylindrical space and vice versa"""
+
+    def __init__(self,points,cartesian=True): 
+        """cartisian flag indicates which type of coordinates are begin given""" 
+
+        #cartesian: x along the length; y,z along the thickness
+        #cylindrical: x along the axis; r,theta along the thickness
+        points = np.array(points,dtype=np.float64)
+
+        if cartesian: 
+            self.cartesian = points
+
+            X,Y,Z = points[:,0],points[:,1],points[:,2]
+            R = np.sqrt(Y**2+Z**2)
+            Theta = np.arctan2(Y,Z)
+            self.cylindrical = np.nan_to_num(np.vstack((X,R,Theta)).T)
+        else: 
+            self.cylindrical = points
+            X,R,Theta = points[:,0],points[:,1],points[:,2]
+            tan_Theta = np.tan(Theta)
+            Z = np.sqrt(1+tan_Theta**2/R**2)
+            Y = Z*tan_Theta
+            self.cartesian = np.nan_to_num(np.vstack((X,Y,Z)).T)
+
+class ArbitraryBody(object): 
+
+class BodyOfRevolution(object): 
+    """FFD class for solid bodies which only have one surface""" 
     
     def __init__(self,geom_points,control_points,name="body"): 
     
@@ -69,7 +96,7 @@ class Body(object):
 
                     
         
-class Shell(object): 
+class ShellOfRevolution(object): 
     """FFD class for shell bodies which have two connected surfaces"""
     
     def __init__(self,upper_points,lower_points,center_iine_controls,thickness_controls,name='shell'): 
@@ -185,6 +212,18 @@ class Shell(object):
 
 
         return self.Po_bar,self.Pi_bar
+
+if __name__ == "__main__":
+    p = [[0,0,0],[0,0,1],[0,1,0]]     
+    p_prime = Coordinates(p,cartesian=True)
+    print p_prime.cartesian
+    print p_prime.cylindrical   
+    
+    p = [[0,0,0],[0,1,0],[0,1,np.pi/2]]
+    p_prime = Coordinates(p,cartesian=False)
+    print p_prime.cartesian
+    print p_prime.cylindrical      
+
 
 
         

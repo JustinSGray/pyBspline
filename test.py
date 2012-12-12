@@ -3,7 +3,7 @@ from matplotlib import pylab
 from numpy.random import random_sample
 from numpy import linspace, array, zeros, ones
 
-from ffd import Body
+from ffd_revolve import Body
 import time
 
 #test points

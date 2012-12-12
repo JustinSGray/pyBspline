@@ -1,4 +1,4 @@
-from ffd import Body,Shell
+from ffd_revolve import Body,Shell
 from matplotlib import pylab as plt
 import numpy as np
 
