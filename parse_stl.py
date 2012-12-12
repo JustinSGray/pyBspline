@@ -2,6 +2,15 @@ from pyparsing import Word,Literal,CaselessLiteral,Combine,Optional,nums,ParseEx
 
 import numpy as np
 
+ASCII_FACET = """  facet normal  {face[0]:e}  {face[1]:e}  {face[2]:e}
+    outer loop
+      vertex    {face[3]:e}  {face[4]:e}  {face[5]:e}
+      vertex    {face[6]:e}  {face[7]:e}  {face[8]:e}
+      vertex    {face[9]:e}  {face[10]:e}  {face[11]:e}
+    endloop
+  endfacet"""
+
+
 point = Literal( "." )
 number = Word( "+-"+nums, nums )
 ows = Optional(Word(" "))
@@ -35,6 +44,9 @@ def _parse(str):
 def parse_stl(f): 
     """expects a filelike object, and returns a nx12 array. One row for every facet in the STL file."""
     
+    if not hasattr(f,'readline'): 
+        f = open(f,'rb')
+
     line = f.readline()
     stack = []
     facets = []
@@ -66,5 +78,54 @@ if __name__ == '__main__':
     print np.reshape(parse_stl(facet_file),(-1,1)).shape
 
 
+class STL(object): 
+    """Manages the points extracted from an STL file""" 
 
-  
+    def __init__(self,stl_file): 
+        """given an stl file object, imports points and reshapes array to an 
+        array of n_facetsx3 points.""" 
+
+        self.facets = parse_stl(stl_file)
+               
+        #list of points and the associated index from the facet array 
+        points = []
+        indecies = [] 
+
+        #extract the 9 points from each facet into one 3*n_facets set of (x,y,z)
+        #    points and keep track of the original indcies at the same time so 
+        #    I can reconstruct the stl file later
+        column = range(3,12)
+        for i,facet in enumerate(self.facets):
+            row = 9*[i,]
+            
+            indecies.extend(np.array(zip(row,column)).reshape((3,3,2)))
+            points.extend(facet[3:].reshape((3,3)))
+
+        self.indecies = np.array(indecies)
+        #just need to re-shape these for the assignment call later
+        self.i0 = self.indecies[:,:,0]
+        self.i1 = self.indecies[:,:,1]
+        self.points = np.array(points)
+
+    def write(self,file_name,points):
+        """writes out a new stl file, with the given name, using the supplied 
+        updated points""" 
+
+        if points.shape != self.points.shape:
+            #raise IndexError here, has to be same
+            pass
+
+        #set the deformed points back into the original array 
+        self.points = points.copy()
+        self.facets[self.i0,self.i1] = points
+
+        lines = ['solid ffd_geom',]
+        for facet in self.facets: 
+            lines.append(ASCII_FACET.format(face=facet))
+        lines.append('endsolid ffd_geom')    
+
+        f = open(file_name,'w')
+        f.write("\n".join(lines))
+        f.close()
+
+
