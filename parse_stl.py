@@ -32,7 +32,7 @@ def _parse(str):
             pass
     return False,False    
 
-def import(f): 
+def parse_stl(f): 
     """expects a filelike object, and returns a nx12 array. One row for every facet in the STL file."""
     
     line = f.readline()
@@ -60,10 +60,10 @@ def import(f):
 
 if __name__ == '__main__':
 
-    facet_file = open('Centerbody.stl','rU')
+    facet_file = open('Nozzle/Centerbody.stl','rU')
 
     
-    print np.reshape(import(facet_file),(-1,1)).shape
+    print np.reshape(parse_stl(facet_file),(-1,1)).shape
 
 
 

@@ -97,7 +97,7 @@ class Body(object):
 
                     
         
-class ArbitraryShell(object): 
+class Shell(object): 
     """FFD class for shell bodies which have two connected surfaces"""
     
     def __init__(self,upper_points,lower_points,center_iine_controls,thickness_controls,name='shell'): 
