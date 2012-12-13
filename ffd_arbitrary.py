@@ -74,7 +74,8 @@ class Body(object):
         self.P_bar[:,1] = self.P[:,1]+self.r_mag*delta_P[:,1] 
 
         #transform to cartesian coordinates
-        self.P_bar_cart = Coordinates(self.P_bar,cartesian=False).cartesian
+        self.coords = Coordinates(self.P_bar,cartesian=False)
+        self.P_bar_cart = self.coords.cartesian
         self.Xo = self.P_bar_cart[:,0]
         self.Yo = self.P_bar_cart[:,1]
         self.Zo = self.P_bar_cart[:,2]
@@ -88,11 +89,11 @@ class Body(object):
 
     def plot_geom(self,ax,initial_color='g',ffd_color='k'): 
         if initial_color: 
-            ax.scatter(self.P[:,0],self.P[:,1],c=initial_color,s=50,label="%s initial geom"%self.name)
-            ax.plot(self.P[:,0],self.P[:,1],c=initial_color)
+            ax.scatter(self.P[10:20,0],self.P[10:20,1],c=initial_color,s=50,label="%s initial geom"%self.name)
+            ax.plot(self.P[:10,0],self.P[:10,1],c=initial_color)
         if ffd_color:     
-            ax.scatter(self.P_bar[:,0],self.P_bar[:,1],c=ffd_color,s=50,label="%s ffd geom"%self.name) 
-            ax.plot(self.P_bar[:,0],self.P_bar[:,1],c=ffd_color)
+            ax.scatter(self.P_bar[:10,0],self.P_bar[:10,1],c=ffd_color,s=50,label="%s ffd geom"%self.name) 
+            ax.plot(self.P_bar[:10,0],self.P_bar[:10,1],c=ffd_color)
 
 
                     

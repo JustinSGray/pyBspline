@@ -55,6 +55,6 @@ fig = pylab.figure()
 ax = fig.add_subplot(111, projection='3d')
 
 ax.plot_surface(body.Xo,body.Yo,body.Zo,rstride=1, cstride=1, alpha=0.2)
-ax.plot_surface(body.Xi,body.Yi,body.Zi,rstride=1, cstride=1, alpha=1.0,color='r')
+#ax.plot_surface(body.Xi,body.Yi,body.Zi,rstride=1, cstride=1, alpha=1.0,color='r')
        
 pylab.show()

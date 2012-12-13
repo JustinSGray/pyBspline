@@ -11,6 +11,8 @@ ASCII_FACET = """  facet normal  {face[0]:e}  {face[1]:e}  {face[2]:e}
   endfacet"""
 
 
+
+
 point = Literal( "." )
 number = Word( "+-"+nums, nums )
 ows = Optional(Word(" "))
