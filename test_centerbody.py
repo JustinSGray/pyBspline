@@ -3,6 +3,10 @@ import numpy as np
 
 from ffd_arbitrary import Body
 from parse_stl import STL
+import time 
+
+start_time = time.time()
+
 
 centerbody= STL('nozzle/Centerbody.stl')
 points = centerbody.points
@@ -25,7 +29,9 @@ deltaC = np.array(zip(deltaC_x,deltaC_r))
 #calculate new P's
 body.deform(deltaC)
     
-centerbody.write('new.stl',body.coords.cartesian)
+centerbody.writeSTL('new.stl',body.coords.cartesian)
+
+print "run time: ", time.time()-start_time
 
 
 

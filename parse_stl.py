@@ -91,6 +91,7 @@ class STL(object):
         #so instead we keep a mapping between duplicates and their index in 
         #the point array
         point_locations = {}
+        triangles = [] #used to track connectivity information
 
         #extract the 9 points from each facet into one 3*n_facets set of (x,y,z)
         #    points and keep track of the original indcies at the same time so 
@@ -102,18 +103,20 @@ class STL(object):
         for i,facet in enumerate(self.facets):
             row = row_base*i
             ps = facet[3:].reshape((3,3))
+            triangle = []
             for p in ps: 
                 t_p = tuple(p)
                 try: 
                     p_index = point_locations[t_p]
                     point_indecies.append(p_index) #we already have that point, so just point back to it
+                    triangle.append(p_index)
                 except KeyError: 
                     points.append(p)
 
                     point_locations[t_p] = p_count
                     point_indecies.append(p_count)
                     p_count += 1 
-
+            triangles.append(tuple(triangle))
 
             index = np.vstack((row_base*i,column)).T.reshape((3,3,2))
             stl_indecies.extend(index)
@@ -124,17 +127,26 @@ class STL(object):
         self.stl_i1 = self.stl_indecies[:,:,1]
         self.points = np.array(points)
         self.point_indecies = point_indecies
+        self.triangles = triangles
 
-    def write(self,file_name,points):
-        """writes out a new stl file, with the given name, using the supplied 
-        updated points""" 
+    def update_points(self,points): 
+        """updates the points in the object with the new set"""   
 
         if points.shape != self.points.shape:
             #raise IndexError here, has to be same
             pass
 
         #set the deformed points back into the original array 
-        self.points = points
+        self.points = points 
+        return points
+
+    def writeSTL(self,file_name,points=None):
+        """writes out a new stl file, with the given name, using the supplied 
+        updated points""" 
+
+        if points: 
+            points = self.update_points(points)
+        
         self.facets[self.stl_i0,self.stl_i1] = points[self.point_indecies]
 
         lines = ['solid ffd_geom',]
@@ -145,4 +157,21 @@ class STL(object):
         f = open(file_name,'w')
         f.write("\n".join(lines))
         f.close()
+
+    def exportFEPOINT(self,file_name,points=None):
+       """writes out a new FEPOINT file with the given name, using the supplied points"""
+       
+       if points: 
+            points = self.update_points(points)
+
+       pass          
+
+    def exportRAW(self,file_name,points=None): 
+        """writes out a simple comma separated datafile that can be parsed 
+        a lot faster""" 
+
+        if points: 
+            points = self.update_points(points)
+
+        pass
 
