@@ -13,18 +13,20 @@ class Bspline(object):
         self.knots =  hstack(([0,]*(self.degree),
                               hstack((linspace(0,1,self.n-self.order+2),[1,]*(self.degree)))
                              ))
-         
+        self.__b_cache = {} #uses for memoizing the b_jn function
         self.max_x = max(points[:,0]) 
         self.B = self._calc_jacobian(points)
+
    
     def _calc_jacobian(self,points):                       
         #pre-calculate the B matrix
         n_p = points.shape[0]
         B = matrix(empty((n_p,self.n)))
         
+        r = range(0,self.n)
         for i,p in enumerate(points): 
             t = self.find(p[0])
-            for j in range(0,self.n): 
+            for j in r: 
                 B[i,j] = self.b_jn_wrapper(j,self.degree,t)
                 
         #self.B = csr_matrix(B)
@@ -73,13 +75,18 @@ class Bspline(object):
         
     #dirty hack to fix some weird corner case that shows up    
     def b_jn_wrapper(self,j,n,t): 
-        B = self.b_jn(j,n,t)
-        if j == self.n-1: 
-            try: 
-                B[t==1]=1 #anywhere t=1, set B = 1
-            except TypeError: 
-                B = 1    
-        return B 
+        tuple_t = tuple(t)
+        try: 
+            return self.__b_cache[(j,n,tuple_t)]
+        except KeyError:     
+            B = self.b_jn(j,n,t)
+            if j == self.n-1: 
+                try: 
+                    B[t==1]=1 #anywhere t=1, set B = 1
+                except TypeError: 
+                    B = 1   
+            self.__b_cache[(j,n,tuple_t)] = B         
+            return B 
         
     def __call__(self,t): 
         rng = range(0,self.n)

@@ -72,13 +72,6 @@ def parse_stl(f):
 
     return np.array(facets)
 
-if __name__ == '__main__':
-
-    facet_file = open('Nozzle/Centerbody.stl','rU')
-
-    
-    print np.reshape(parse_stl(facet_file),(-1,1)).shape
-
 
 class STL(object): 
     """Manages the points extracted from an STL file""" 
@@ -91,23 +84,46 @@ class STL(object):
                
         #list of points and the associated index from the facet array 
         points = []
-        indecies = [] 
+        stl_indecies = [] 
+        point_indecies = [] #same size as stl_indecies, but points to locations in the points data
+
+        #stl files have duplicate points, which we don't want to compute on
+        #so instead we keep a mapping between duplicates and their index in 
+        #the point array
+        point_locations = {}
 
         #extract the 9 points from each facet into one 3*n_facets set of (x,y,z)
         #    points and keep track of the original indcies at the same time so 
         #    I can reconstruct the stl file later
-        column = range(3,12)
-        for i,facet in enumerate(self.facets):
-            row = 9*[i,]
-            
-            indecies.extend(np.array(zip(row,column)).reshape((3,3,2)))
-            points.extend(facet[3:].reshape((3,3)))
+        column = np.arange(3,12,dtype=np.int)
+        row_base = np.ones(9,dtype=np.int)
 
-        self.indecies = np.array(indecies)
+        p_count = 0
+        for i,facet in enumerate(self.facets):
+            row = row_base*i
+            ps = facet[3:].reshape((3,3))
+            for p in ps: 
+                t_p = tuple(p)
+                try: 
+                    p_index = point_locations[t_p]
+                    point_indecies.append(p_index) #we already have that point, so just point back to it
+                except KeyError: 
+                    points.append(p)
+
+                    point_locations[t_p] = p_count
+                    point_indecies.append(p_count)
+                    p_count += 1 
+
+
+            index = np.vstack((row_base*i,column)).T.reshape((3,3,2))
+            stl_indecies.extend(index)
+
+        self.stl_indecies = np.array(stl_indecies)
         #just need to re-shape these for the assignment call later
-        self.i0 = self.indecies[:,:,0]
-        self.i1 = self.indecies[:,:,1]
+        self.stl_i0 = self.stl_indecies[:,:,0]
+        self.stl_i1 = self.stl_indecies[:,:,1]
         self.points = np.array(points)
+        self.point_indecies = point_indecies
 
     def write(self,file_name,points):
         """writes out a new stl file, with the given name, using the supplied 
@@ -118,8 +134,8 @@ class STL(object):
             pass
 
         #set the deformed points back into the original array 
-        self.points = points.copy()
-        self.facets[self.i0,self.i1] = points
+        self.points = points
+        self.facets[self.stl_i0,self.stl_i1] = points[self.point_indecies]
 
         lines = ['solid ffd_geom',]
         for facet in self.facets: 
@@ -129,5 +145,4 @@ class STL(object):
         f = open(file_name,'w')
         f.write("\n".join(lines))
         f.close()
-
 

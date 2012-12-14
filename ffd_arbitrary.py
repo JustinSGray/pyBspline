@@ -23,9 +23,8 @@ class Coordinates(object):
         else: 
             self.cylindrical = points
             X,R,Theta = points[:,0],points[:,1],points[:,2]
-            tan_Theta = np.tan(Theta)
-            Z = np.sqrt(1+tan_Theta**2/R**2)
-            Y = Z*tan_Theta
+            Z = R*np.cos(Theta)
+            Y = R*np.sin(Theta)
             self.cartesian = np.nan_to_num(np.vstack((X,Y,Z)).T)
 
 
@@ -38,6 +37,7 @@ class Body(object):
         self.coords = Coordinates(geom_points,cartesian=cartesian)
 
         self.P = self.coords.cylindrical
+        self.P_cart = self.coords.cartesian
         self.P_bar = geom_points.copy() #just initialization
         self.C = control_points  
         self.bs = Bspline(control_points,geom_points)
@@ -69,12 +69,14 @@ class Body(object):
         self.C_bar = self.C+delta_C
         
         delta_P = self.bs.calc(self.C_bar)
+
         self.P_bar = self.P.copy()
         self.P_bar[:,0] = delta_P[:,0]
-        self.P_bar[:,1] = self.P[:,1]+self.r_mag*delta_P[:,1] 
+        self.P_bar[:,1] = self.P[:,1]+self.r_mag*delta_P[:,1]
 
         #transform to cartesian coordinates
         self.coords = Coordinates(self.P_bar,cartesian=False)
+
         self.P_bar_cart = self.coords.cartesian
         self.Xo = self.P_bar_cart[:,0]
         self.Yo = self.P_bar_cart[:,1]

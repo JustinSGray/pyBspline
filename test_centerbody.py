@@ -4,7 +4,7 @@ import numpy as np
 from ffd_arbitrary import Body
 from parse_stl import STL
 
-centerbody= STL('nozzle/Centerbody_test.stl')
+centerbody= STL('nozzle/Centerbody.stl')
 points = centerbody.points
 
 #set up control points 
@@ -19,17 +19,12 @@ C = np.array(zip(C_x,C_r))
 body = Body(points,C)
 
 deltaC_x = np.array([0,0,0,0])
-deltaC_r = np.array([0,0,0,0])
+deltaC_r = np.array([0,0,0,3])
 deltaC = np.array(zip(deltaC_x,deltaC_r))
 
 #calculate new P's
-#body.deform(deltaC)
-
-for p0,p1 in zip(points,body.coords.cartesian): 
-    print p0-p1
-    exit()
+body.deform(deltaC)
     
-
 centerbody.write('new.stl',body.coords.cartesian)
 
 
