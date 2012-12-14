@@ -1,6 +1,8 @@
+import struct 
+import numpy as np
+
 from pyparsing import Word,Literal,CaselessLiteral,Combine,Optional,nums,ParseException
 
-import numpy as np
 
 ASCII_FACET = """  facet normal  {face[0]:e}  {face[1]:e}  {face[2]:e}
     outer loop
@@ -9,6 +11,9 @@ ASCII_FACET = """  facet normal  {face[0]:e}  {face[1]:e}  {face[2]:e}
       vertex    {face[9]:e}  {face[10]:e}  {face[11]:e}
     endloop
   endfacet"""
+
+BINARY_HEADER ="80sI"
+BINARY_FACET = "12fH"      
 
 
 
@@ -43,7 +48,7 @@ def _parse(str):
             pass
     return False,False    
 
-def parse_stl(f): 
+def parse_ascii_stl(f): 
     """expects a filelike object, and returns a nx12 array. One row for every facet in the STL file."""
     
     if not hasattr(f,'readline'): 
@@ -72,15 +77,33 @@ def parse_stl(f):
 
     return np.array(facets)
 
+def parse_binary_stl(f): 
+
+    if not hasattr(f,'readline'): 
+        f = open(f,'rb')
+
+    header,n_triangles = struct.unpack(BINARY_HEADER,f.read(84))
+
+    facets = []
+    
+    for i in xrange(0,n_triangles):
+        facet = struct.unpack(BINARY_FACET,f.read(50))
+        facets.append(facet[:12])
+
+    return np.array(facets)    
+
 
 class STL(object): 
     """Manages the points extracted from an STL file""" 
 
-    def __init__(self,stl_file): 
+    def __init__(self,stl_file,ascii=True): 
         """given an stl file object, imports points and reshapes array to an 
         array of n_facetsx3 points.""" 
 
-        self.facets = parse_stl(stl_file)
+        if ascii: 
+            self.facets = parse_ascii_stl(stl_file)
+        else: 
+            self.facets = parse_binary_stl(stl_file)    
                
         #list of points and the associated index from the facet array 
         points = []
@@ -99,7 +122,7 @@ class STL(object):
         column = np.arange(3,12,dtype=np.int)
         row_base = np.ones(9,dtype=np.int)
 
-        p_count = 0
+        p_count = 0 #im using this to avoid calling len(points) a lot
         for i,facet in enumerate(self.facets):
             row = row_base*i
             ps = facet[3:].reshape((3,3))
@@ -112,9 +135,9 @@ class STL(object):
                     triangle.append(p_index)
                 except KeyError: 
                     points.append(p)
-
                     point_locations[t_p] = p_count
                     point_indecies.append(p_count)
+                    triangle.append(p_count)
                     p_count += 1 
             triangles.append(tuple(triangle))
 
@@ -140,38 +163,52 @@ class STL(object):
         self.points = points 
         return points
 
-    def writeSTL(self,file_name,points=None):
-        """writes out a new stl file, with the given name, using the supplied 
-        updated points""" 
-
-        if points: 
-            points = self.update_points(points)
-        
-        self.facets[self.stl_i0,self.stl_i1] = points[self.point_indecies]
+    def _build_ascii_stl(self): 
+        """returns a list of ascii lines for the stl file """
 
         lines = ['solid ffd_geom',]
         for facet in self.facets: 
             lines.append(ASCII_FACET.format(face=facet))
-        lines.append('endsolid ffd_geom')    
+        lines.append('endsolid ffd_geom')
+        return lines
+
+    def _build_binary_stl(self):
+        """returns a string of binary binary data for the stl file"""
+
+        lines = [struct.pack(BINARY_HEADER,b'Binary STL Writer',len(self.facets)),]
+        for facet in self.facets: 
+            facet = list(facet)
+            facet.append(0) #need to pad the end with a unsigned short byte
+            lines.append(struct.pack(BINARY_FACET,*facet))  
+        return lines      
+
+    def writeSTL(self,file_name,points=None,ascii=True):
+        """writes out a new stl file, with the given name, using the supplied 
+        updated points""" 
+
+        if points != None: 
+            points = self.update_points(points)
+        
+        self.facets[self.stl_i0,self.stl_i1] = points[self.point_indecies]
 
         f = open(file_name,'w')
-        f.write("\n".join(lines))
+        if ascii: 
+            lines = self._build_ascii_stl()
+            f.write("\n".join(lines))
+        else: 
+            data = self._build_binary_stl()
+            f.write("".join(data))
         f.close()
 
-    def exportFEPOINT(self,file_name,points=None):
-       """writes out a new FEPOINT file with the given name, using the supplied points"""
+    def writeFEPOINT(self,file_name,points=None):
+        """writes out a new FEPOINT file with the given name, using the supplied points"""
        
-       if points: 
+        if points != None: 
             points = self.update_points(points)
 
-       pass          
+        
+        for tri in self.triangles: 
+            print tri
 
-    def exportRAW(self,file_name,points=None): 
-        """writes out a simple comma separated datafile that can be parsed 
-        a lot faster""" 
 
-        if points: 
-            points = self.update_points(points)
-
-        pass
 

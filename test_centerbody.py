@@ -8,7 +8,9 @@ import time
 start_time = time.time()
 
 
-centerbody= STL('nozzle/Centerbody.stl')
+#centerbody= STL('nozzle/Centerbody.stl')
+centerbody= STL('NozzleSurfacesBin/Centerbody_Bin.stl',ascii=False)
+
 points = centerbody.points
 
 #set up control points 
@@ -20,16 +22,17 @@ C_x = np.linspace(x_min,x_max,n_C)
 C_r = np.zeros((n_C,))
 C = np.array(zip(C_x,C_r))
 
-body = Body(points,C)
+#body = Body(points,C)
 
 deltaC_x = np.array([0,0,0,0])
-deltaC_r = np.array([0,0,0,3])
+deltaC_r = np.array([0,0,.5,0])
 deltaC = np.array(zip(deltaC_x,deltaC_r))
 
 #calculate new P's
-body.deform(deltaC)
+#body.deform(deltaC)
     
-centerbody.writeSTL('new.stl',body.coords.cartesian)
+#centerbody.writeSTL('new.stl',body.coords.cartesian,ascii=False)
+centerbody.writeFEPOINT('new.fepoint')
 
 print "run time: ", time.time()-start_time
 

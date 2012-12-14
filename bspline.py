@@ -27,7 +27,7 @@ class Bspline(object):
         for i,p in enumerate(points): 
             t = self.find(p[0])
             for j in r: 
-                B[i,j] = self.b_jn_wrapper(j,self.degree,t)
+                B[i,j] = self.b_jn_wrapper(j,self.degree,t)    
                 
         #self.B = csr_matrix(B)
         self.B = B
