@@ -122,7 +122,7 @@ class STL(object):
         column = np.arange(3,12,dtype=np.int)
         row_base = np.ones(9,dtype=np.int)
 
-        p_count = 0 #im using this to avoid calling len(points) a lot
+        p_count = 1 #I'm using this to avoid calling len(points) a lot
         for i,facet in enumerate(self.facets):
             row = row_base*i
             ps = facet[3:].reshape((3,3))
@@ -144,6 +144,7 @@ class STL(object):
             index = np.vstack((row_base*i,column)).T.reshape((3,3,2))
             stl_indecies.extend(index)
 
+        self.p_count = p_count
         self.stl_indecies = np.array(stl_indecies)
         #just need to re-shape these for the assignment call later
         self.stl_i0 = self.stl_indecies[:,:,0]
@@ -156,8 +157,7 @@ class STL(object):
         """updates the points in the object with the new set"""   
 
         if points.shape != self.points.shape:
-            #raise IndexError here, has to be same
-            pass
+            raise IndexError("The provided points set has a different shape than the original. They must be the same")
 
         #set the deformed points back into the original array 
         self.points = points 
@@ -188,6 +188,8 @@ class STL(object):
 
         if points != None: 
             points = self.update_points(points)
+        else: 
+            points = self.points    
         
         self.facets[self.stl_i0,self.stl_i1] = points[self.point_indecies]
 
@@ -205,10 +207,27 @@ class STL(object):
        
         if points != None: 
             points = self.update_points(points)
+        else: 
+            points = self.points    
 
-        
+        lines = ['TITLE = "FFD_geom"',]
+        var_line = 'VARIABLES = "X" "Y" "Z" "ID"' #TODO: Need to append columns for all the derivatives
+        lines.append(var_line)
+
+        lines.append('ZONE T = group0, I = %d, J = %d, F=FEPOINT'%(self.p_count,10)) #TODO I think this J number depends on the number of variables
+        for i,p in enumerate(self.points): 
+            #TODO, also have to deal with derivatives here
+            #Note: point counts are 1 bias, so I have to account for that with i
+            line = "%.8f %.8f %.8f %d"%(p[0],p[1],p[2],i+1) 
+
+            lines.append(line)
+
         for tri in self.triangles: 
-            print tri
+            line = "%d %d %d"%tri
+            lines.append(line)
 
+        f = open(file_name,'w')
+        f.write("\n".join(lines))
+        f.close()
 
 

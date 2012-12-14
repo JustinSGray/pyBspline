@@ -32,7 +32,7 @@ deltaC = np.array(zip(deltaC_x,deltaC_r))
 #body.deform(deltaC)
     
 #centerbody.writeSTL('new.stl',body.coords.cartesian,ascii=False)
-centerbody.writeFEPOINT('new.fepoint')
+centerbody.writeFEPOINT('new_fepoint.tec')
 
 print "run time: ", time.time()-start_time
 
