@@ -214,7 +214,8 @@ class STL(object):
         var_line = 'VARIABLES = "X" "Y" "Z" "ID"' #TODO: Need to append columns for all the derivatives
         lines.append(var_line)
 
-        lines.append('ZONE T = group0, I = %d, J = %d, F=FEPOINT'%(self.p_count,10)) #TODO I think this J number depends on the number of variables
+_
+        lines.append('ZONE T = group0, I = %d, J = %d, F=FEPOINT'%(len(self.points),len(self.triangles))) #TODO I think this J number depends on the number of variables
         for i,p in enumerate(self.points): 
             #TODO, also have to deal with derivatives here
             #Note: point counts are 1 bias, so I have to account for that with i
@@ -223,8 +224,9 @@ class STL(object):
             lines.append(line)
 
         for tri in self.triangles: 
-            line = "%d %d %d"%tri
+            line = "%d %d %d %d"%(tri[0],tri[1],tri[2],tri[2])
             lines.append(line)
+
 
         f = open(file_name,'w')
         f.write("\n".join(lines))

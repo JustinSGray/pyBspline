@@ -22,17 +22,17 @@ C_x = np.linspace(x_min,x_max,n_C)
 C_r = np.zeros((n_C,))
 C = np.array(zip(C_x,C_r))
 
-#body = Body(points,C)
+body = Body(points,C)
 
-deltaC_x = np.array([0,0,0,0])
-deltaC_r = np.array([0,0,.5,0])
+deltaC_x = np.array([0,.2,.2,100])
+deltaC_r = np.array([0,0,0,0])
 deltaC = np.array(zip(deltaC_x,deltaC_r))
 
 #calculate new P's
-#body.deform(deltaC)
+body.deform(deltaC)
     
 #centerbody.writeSTL('new.stl',body.coords.cartesian,ascii=False)
-centerbody.writeFEPOINT('new_fepoint.tec')
+centerbody.writeFEPOINT('deform.dat',body.coords.cartesian)
 
 print "run time: ", time.time()-start_time
 
