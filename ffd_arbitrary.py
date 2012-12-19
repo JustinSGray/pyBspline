@@ -44,24 +44,26 @@ class Body(object):
         self.name = name
         
         self.r_mag = np.average(geom_points[:,1])
+        self.n_controls = len(control_points)
 
         #for revolution of 2-d profile
         #self.n_theta = 20
 
         #sgrab the theta values from the points 
         self.Theta = self.P[:,2]
-        self.sin_theta = np.sin(self.Theta)
-        self.cos_theta = np.cos(self.Theta)
+        #this is too complex. shouldn't need to tile, then flatten later.
+        self.sin_theta = np.tile(np.sin(self.Theta),4)
+        self.cos_theta = np.tile(np.cos(self.Theta),4)
 
         #calculate derivatives
         #in polar coordinates
-        self.dP_bar_xqdC = self.bs.B.flatten()
-        self.dP_bar_rqdC = self.r_mag*self.bs.B.flatten()
+        self.dP_bar_xqdC = np.array(self.bs.B.flatten())
+        self.dP_bar_rqdC = np.array(self.r_mag*self.bs.B.flatten())
 
         #Project Polar derivatives into revolved cartisian coordinates
-        self.dXqdC = self.dP_bar_xqdC,
-        self.dYqdC = np.outer(self.dP_bar_rqdC,self.sin_theta)
-        self.dZqdC = np.outer(self.dP_bar_rqdC,self.cos_theta)
+        self.dXqdC = self.dP_bar_xqdC.reshape(-1,self.n_controls)
+        self.dYqdC = (self.dP_bar_rqdC*self.sin_theta).reshape(-1,self.n_controls)
+        self.dZqdC = (self.dP_bar_rqdC*self.cos_theta).reshape(-1,self.n_controls)
 
     def deform(self,delta_C): 
         """returns new point locations for the given motion of the control 

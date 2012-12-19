@@ -21,7 +21,7 @@ class Bspline(object):
     def _calc_jacobian(self,points):                       
         #pre-calculate the B matrix
         n_p = points.shape[0]
-        B = matrix(empty((n_p,self.n)))
+        B = matrix(empty((n_p,self.n))) #1 row per point, one column per control_point
         
         r = range(0,self.n)
         for i,p in enumerate(points): 
