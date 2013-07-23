@@ -8,8 +8,8 @@ import time
 start_time = time.time()
 
 
-#centerbody= STL('nozzle/Centerbody.stl')
-centerbody= STL('NozzleSurfacesBin/Centerbody_Bin.stl',ascii=False)
+centerbody= STL('nozzle/Centerbody.stl')
+#centerbody= STL('NozzleSurfacesBin/Centerbody_Bin.stl')
 
 points = centerbody.points
 
@@ -24,8 +24,8 @@ C = np.array(zip(C_x,C_r))
 
 body = Body(points,C)
 
-deltaC_x = np.array([0,0,0,0,0,0,0,0,0,0])
-deltaC_r = np.array([0,0,0,0,0,0,0,0,10,0])
+deltaC_x = [0,0,0,0,0,0,0,0,0,0]
+deltaC_r = [0,0,0,0,0,0,0,0,10,0]
 deltaC = np.array(zip(deltaC_x,deltaC_r))
 
 #calculate new P's

@@ -1,8 +1,6 @@
 import struct 
 import numpy as np
 
-from pyparsing import Word,Literal,CaselessLiteral,Combine,Optional,nums,ParseException
-
 
 ASCII_FACET = """  facet normal  {face[0]:e}  {face[1]:e}  {face[2]:e}
     outer loop
@@ -16,71 +14,37 @@ BINARY_HEADER ="80sI"
 BINARY_FACET = "12fH"      
 
 
-
-
-point = Literal( "." )
-number = Word( "+-"+nums, nums )
-ows = Optional(Word(" "))
-e = CaselessLiteral("e")
-#number that supports scientific notation
-f_number = Combine( ows + number^(number+point) + 
-               Optional(number)+
-               Optional( point + Optional( Word( nums ) ) ) +
-               Optional( Optional(number) + e + number )
-            )
-
-
-facet = ows + Literal('facet')
-facet_end   = ows + Literal('endfacet')
-normal      = ows + Literal('normal')
-loop_start  = ows + Literal('outer loop')
-loop_end    = ows + Literal('endloop')
-
-facet_normal = facet + normal + f_number + f_number + f_number
-vertex = ows + Literal('vertex') + f_number + f_number + f_number
-
-def _parse(str): 
-    for t in [facet_normal,vertex,loop_start,loop_end,facet_end]:
-        try: 
-            tokens = t.parseString(str)
-            return t, tokens
-        except ParseException: 
-            pass
-    return False,False    
-
 def parse_ascii_stl(f): 
     """expects a filelike object, and returns a nx12 array. One row for every facet in the STL file."""
     
-    if not hasattr(f,'readline'): 
-        f = open(f,'rb')
-
-    line = f.readline()
     stack = []
     facets = []
+    line = f.readline()
     while line: 
-        #print "parsing line:", line.strip()
-        #print "    stack: ", len(stack)
-        t,tokens = _parse(line)
-        if t==facet_normal: 
-            stack = []
-            stack.extend([float(x) for x in tokens[2:5]])
         
-        elif t==vertex: 
-            stack.extend([float(x) for x in tokens[1:4]])
-        
-        elif t==facet_end: 
-            #empty the stack into the growing array of points
+
+        if "facet normal" in line: 
+
+            stack.extend(map(float,line.strip().split()[2:5]))
+            line = f.readline() #"outer loop"
+            #vertecies
+            line = f.readline() 
+            stack.extend(map(float,line.strip().split()[1:4]))
+            line = f.readline() 
+            stack.extend(map(float,line.strip().split()[1:4]))
+            line = f.readline() 
+            stack.extend(map(float,line.strip().split()[1:4]))
+            line = f.readline() #"end loop"
+            line = f.readline() #'endfacet'
+
             facets.append(stack)
-            pass
+            stack = []
 
         line = f.readline()
 
     return np.array(facets)
 
 def parse_binary_stl(f): 
-
-    if not hasattr(f,'readline'): 
-        f = open(f,'rb')
 
     header,n_triangles = struct.unpack(BINARY_HEADER,f.read(84))
 
@@ -96,9 +60,15 @@ def parse_binary_stl(f):
 class STL(object): 
     """Manages the points extracted from an STL file""" 
 
-    def __init__(self,stl_file,ascii=True): 
+    def __init__(self,stl_file): 
         """given an stl file object, imports points and reshapes array to an 
         array of n_facetsx3 points.""" 
+
+        if not hasattr(stl_file,'readline'): 
+            stl_file = open(stl_file,'rb')
+
+        ascii = (stl_file.readline().strip().split()[0] == 'solid')
+        stl_file.seek(0)
 
         if ascii: 
             self.facets = parse_ascii_stl(stl_file)
