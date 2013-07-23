@@ -122,7 +122,7 @@ class STL(object):
         column = np.arange(3,12,dtype=np.int)
         row_base = np.ones(9,dtype=np.int)
 
-        p_count = 1 #I'm using this to avoid calling len(points) a lot
+        p_count = 0 #I'm using this to avoid calling len(points) a lot
         for i,facet in enumerate(self.facets):
             row = row_base*i
             ps = facet[3:].reshape((3,3))
@@ -214,7 +214,6 @@ class STL(object):
         var_line = 'VARIABLES = "X" "Y" "Z" "ID"' #TODO: Need to append columns for all the derivatives
         lines.append(var_line)
 
-_
         lines.append('ZONE T = group0, I = %d, J = %d, F=FEPOINT'%(len(self.points),len(self.triangles))) #TODO I think this J number depends on the number of variables
         for i,p in enumerate(self.points): 
             #TODO, also have to deal with derivatives here
