@@ -8,8 +8,8 @@ import time
 start_time = time.time()
 
 
-centerbody= STL('nozzle/Centerbody.stl')
-#centerbody= STL('NozzleSurfacesBin/Centerbody_Bin.stl')
+#centerbody= STL('nozzle/Centerbody.stl')
+centerbody= STL('NozzleSurfacesBin/Centerbody_Bin.stl')
 
 points = centerbody.points
 
@@ -28,13 +28,25 @@ deltaC_x = [0,0,0,0,0,0,0,0,0,0]
 deltaC_r = [0,0,0,0,0,0,0,0,10,0]
 deltaC = np.array(zip(deltaC_x,deltaC_r))
 
+print "Load Time: ", time.time()-start_time
+start_time = time.time()
+
+
+
 #calculate new P's
-body.deform(deltaC)
+N = 50
+for i in xrange(N): 
+    deltaC_x = [0,0,0,0,0,0,0,0,0,0]
+    deltaC_r = [0,0,0,0,0,0,0,0,i,0]
+    deltaC = np.array(zip(deltaC_x,deltaC_r))
+    body.deform(deltaC)
+
+print "Run Time: ", (time.time()-start_time)/float(N)
     
 centerbody.writeSTL('new.stl',body.coords.cartesian,ascii=False)
 #centerbody.writeFEPOINT('deform.dat',body.coords.cartesian)
 
-print "run time: ", time.time()-start_time
+
 
 
 
