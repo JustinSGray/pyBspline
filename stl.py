@@ -1,5 +1,8 @@
 import struct 
+import copy
+
 import numpy as np
+
 
 
 ASCII_FACET = """  facet normal  {face[0]:e}  {face[1]:e}  {face[2]:e}
@@ -122,6 +125,9 @@ class STL(object):
         self.points = np.array(points)
         self.point_indecies = point_indecies
         self.triangles = np.array(triangles)
+
+    def copy(self): 
+        return copy.deepcopy(self)
 
     def update_points(self,points): 
         """updates the points in the object with the new set"""   

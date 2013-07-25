@@ -85,7 +85,7 @@ class Body(object):
         self.Yo = self.P_bar_cart[:,1]
         self.Zo = self.P_bar_cart[:,2]
 
-        self.stl.update_points(self.P_bar)
+        self.stl.update_points(self.P_bar_cart)
 
         return self.P_bar
 
