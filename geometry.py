@@ -42,7 +42,6 @@ class Geometry(object):
     def deform(self,**kwargs): 
         """ deforms the geometry applying the new locations for the control points, given by body name"""
         for name,delta_C in kwargs.iteritems(): 
-            print "test: ",name
             i = self._i_comps[name]
             self._comps[i].deform(delta_C)
 

@@ -164,26 +164,6 @@ class STL(object):
         return self.facets
 
 
-    def writeSTL(self,file_name,points=None,ascii=True):
-        """writes out a new stl file, with the given name, using the supplied 
-        updated points""" 
-
-        if points != None: 
-            points = self.update_points(points)
-        else: 
-            points = self.points    
-        
-        self.facets[self.stl_i0,self.stl_i1] = points[self.point_indecies]
-
-        f = open(file_name,'w')
-        if ascii: 
-            lines = self._build_ascii_stl()
-            f.write("\n".join(lines))
-        else: 
-            data = self._build_binary_stl()
-            f.write("".join(data))
-        f.close()
-
     def writeFEPOINT(self,file_name,points=None):
         """writes out a new FEPOINT file with the given name, using the supplied points"""
        

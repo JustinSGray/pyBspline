@@ -1,3 +1,6 @@
+import copy
+
+
 import numpy as np
 
 from bspline import Bspline
@@ -66,6 +69,9 @@ class Body(object):
         self.dYqdC = np.outer(self.dP_bar_rqdC,self.sin_theta)
         self.dZqdC = np.outer(self.dP_bar_rqdC,self.cos_theta)
 
+    def copy(self): 
+        return copy.deepcopy(self)
+
     def deform(self,delta_C): 
         """returns new point locations for the given motion of the control 
         points"""         
@@ -108,7 +114,13 @@ class Body(object):
 class Shell(object): 
     """FFD class for shell bodies which have two connected surfaces"""
     
-    def __init__(self,upper_points,lower_points,center_line_controls,thickness_controls,name='shell'): 
+    def __init__(self,upper_stl,lower_stl,center_line_controls,thickness_controls,name='shell'): 
+
+        self.upper_stl = upper_stl
+        self.lower_stl = lower_stl
+
+        upper_points = upper_stl.points
+        lower_points = lower_stl.points
     
         self.Po = upper_points
         self.Pi = lower_points
@@ -116,7 +128,7 @@ class Shell(object):
         self.Pi_bar = lower_points.copy()
         self.name = name
         
-        self.Cc = center_iine_controls
+        self.Cc = center_line_controls
         self.Ct = thickness_controls 
          
         self.bsc_o = Bspline(self.Cc,upper_points)
@@ -180,7 +192,7 @@ class Shell(object):
 
     def plot_thickness_spline(self,ax,point_color='r',line_color='b'):
         ax.scatter(self.Ct_bar[:,0],self.Ct_bar[:,1],c=point_color,s=50,label="%s Thickness Control Points"%self.name)
-        map_points = self.bsc_o(np.linspace(0,1,100))
+        map_points = self.bst_o(np.linspace(0,1,100))
         ax.plot(map_points[:,0],map_points[:,1],label="Thickness b-spline Curve",c=line_color)
 
 

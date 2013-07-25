@@ -2,13 +2,14 @@ import numpy as np
 import pylab
 from mpl_toolkits.mplot3d import Axes3D
 
-from ffd_revolve import Shell
+from ffd_arbitrary import Shell
 
 
 #Baseline geometry
 X = np.linspace(0,10,10)
 Ro = 300*np.ones((10,))
-Ri = .5*Ro
+Ri = Ro.copy()
+Ri[1:-1] *= .5
 
 P_outter = np.array(zip(X,Ro))
 P_inner = np.array(zip(X,Ri))
@@ -34,7 +35,7 @@ deltaC_x = np.array([0,0,0,1])
 deltaCc = np.array(zip(deltaC_x,deltaC_r))
 
 #move the control points for thickness (only in r direction)
-deltaC_r = np.array([-.1,-.15,.1,0])
+deltaC_r = np.array([0,-.15,.1,0])
 deltaC_x = np.array([0,0,0,0])
 deltaCt = np.array(zip(deltaC_x,deltaC_r))
 
