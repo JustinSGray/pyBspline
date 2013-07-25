@@ -108,7 +108,7 @@ class Body(object):
 class Shell(object): 
     """FFD class for shell bodies which have two connected surfaces"""
     
-    def __init__(self,upper_points,lower_points,center_iine_controls,thickness_controls,name='shell'): 
+    def __init__(self,upper_points,lower_points,center_line_controls,thickness_controls,name='shell'): 
     
         self.Po = upper_points
         self.Pi = lower_points
@@ -204,7 +204,6 @@ class Shell(object):
         
         self.Pi_bar[:,0] = delta_Pc_i[:,0]
         self.Pi_bar[:,1] = self.Pi[:,1]+self.r_mag*(delta_Pc_i[:,1]-delta_Pt_i[:,1])
-        
         
         #Perform axial roation of 2-d polar coordiantes
         #outer surface

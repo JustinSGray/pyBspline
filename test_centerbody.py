@@ -14,6 +14,10 @@ start_time = time.time()
 centerbody= STL('NozzleSurfacesBin/Centerbody_Bin.stl')
 cb0 = centerbody.copy()
 
+print "STL Load Time: ", time.time()-start_time
+start_time = time.time()
+
+
 #set up control points 
 X = centerbody.points[:,0]
 x_max = np.max(X)
@@ -34,7 +38,7 @@ geom.add(body,name="centerbody")
 
 #params = geom.get_params() #params['centerbody'] = [(0,0),]
 
-print "Load Time: ", time.time()-start_time
+print "Bspline Compute Time: ", time.time()-start_time
 start_time = time.time()
 
 #calculate new P's
