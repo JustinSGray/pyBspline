@@ -31,10 +31,13 @@ class Coordinates(object):
 class Body(object): 
     """FFD class for solid bodies which only have one surface""" 
     
-    def __init__(self,geom_points,control_points,cartesian=True,name="body"): 
-        """geom_points must be a nx3 array in either cartesian or cylindrical coordinates"""
+    def __init__(self,stl,control_points,name="body"): 
+        """stl must be an STL object"""
 
-        self.coords = Coordinates(geom_points,cartesian=cartesian)
+        self.stl = stl
+        geom_points = stl.points
+
+        self.coords = Coordinates(geom_points,cartesian=True)
 
         self.P = self.coords.cylindrical
         self.P_cart = self.coords.cartesian
@@ -81,6 +84,8 @@ class Body(object):
         self.Xo = self.P_bar_cart[:,0]
         self.Yo = self.P_bar_cart[:,1]
         self.Zo = self.P_bar_cart[:,2]
+
+        self.stl.update_points(self.P_bar)
 
         return self.P_bar
 

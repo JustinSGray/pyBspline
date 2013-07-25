@@ -1,9 +1,11 @@
 import numpy as np
 
+import time 
 
 from ffd_arbitrary import Body
-from parse_stl import STL
-import time 
+from stl import STL
+from geometry import Geometry
+
 
 start_time = time.time()
 
@@ -11,10 +13,8 @@ start_time = time.time()
 #centerbody= STL('nozzle/Centerbody.stl')
 centerbody= STL('NozzleSurfacesBin/Centerbody_Bin.stl')
 
-points = centerbody.points
-
 #set up control points 
-X = points[:,0]
+X = centerbody.points[:,0]
 x_max = np.max(X)
 x_min = np.min(X)
 n_C = 10 #10 control points
@@ -22,28 +22,33 @@ C_x = np.linspace(x_min,x_max,n_C)
 C_r = np.zeros((n_C,))
 C = np.array(zip(C_x,C_r))
 
-body = Body(points,C)
+#body = Body(centerbody,n_C=10) #just makes n_C evenly spaced points
+body = Body(centerbody,C,name="centerbody") #uses given tuples of points
 
-deltaC_x = [0,0,0,0,0,0,0,0,0,0]
-deltaC_r = [0,0,0,0,0,0,0,0,10,0]
-deltaC = np.array(zip(deltaC_x,deltaC_r))
+
+geom = Geometry()
+geom.add(body,name="centerbody")
+
+#params = geom.get_params() #params['centerbody'] = [(0,0),]
 
 print "Load Time: ", time.time()-start_time
 start_time = time.time()
 
 
-
 #calculate new P's
-N = 50
-for i in xrange(N): 
-    deltaC_x = [0,0,0,0,0,0,0,0,0,0]
-    deltaC_r = [0,0,0,0,0,0,0,0,i,0]
-    deltaC = np.array(zip(deltaC_x,deltaC_r))
-    body.deform(deltaC)
 
-print "Run Time: ", (time.time()-start_time)/float(N)
+deltaC_x = [0,0,0,0,0,0,0,0,0,0]
+deltaC_r = [0,0,0,0,0,0,0,0,10,0]
+deltaC = np.array(zip(deltaC_x,deltaC_r))
+
+geom.deform(centerbody=deltaC)
+
+print "Run Time: ", time.time()-start_time
     
-centerbody.writeSTL('new.stl',body.coords.cartesian,ascii=False)
+geom.writeSTL('new.stl', ascii=False)
+#geom.writeFEPOINT('deform.dat')
+
+#geometry.writeSTL('new.stl',body.coords.cartesian,ascii=False)
 #centerbody.writeFEPOINT('deform.dat',body.coords.cartesian)
 
 
