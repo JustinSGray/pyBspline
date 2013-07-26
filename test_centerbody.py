@@ -47,11 +47,6 @@ deltaC = np.array(zip(deltaC_x,deltaC_r))
 
 geom.deform(centerbody=deltaC)
 
-deltaC_x = [0,0,0,0,0,0,0,0,0,0]
-deltaC_r = [0,0,0,0,0,0,0,0,0,0]
-deltaC = np.array(zip(deltaC_x,deltaC_r))
-
-geom.deform(cb0=deltaC)
 print "Run Time: ", time.time()-start_time
     
 geom.writeSTL('new.stl', ascii=False)
@@ -59,6 +54,7 @@ geom.writeFEPOINT('deform.dat')
 
 #geometry.writeSTL('new.stl',body.coords.cartesian,ascii=False)
 #centerbody.writeFEPOINT('deform.dat',body.coords.cartesian)
+
 
 
 

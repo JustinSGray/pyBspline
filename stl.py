@@ -164,23 +164,47 @@ class STL(object):
         return self.facets
 
 
-    def writeFEPOINT(self,file_name,points=None):
-        """writes out a new FEPOINT file with the given name, using the supplied points"""
+    def writeFEPOINT(self,file_name,points=None,derivs=None):
+        """writes out a new FEPOINT file with the given name, using the supplied points.
+        derivs is of size (3,len(points),len(control_points)), giving matricies of 
+        X,Y,Z drivatives
+
+        jacobian should have a shape of (len(points),len(control_points))"""
        
         if points != None: 
             points = self.update_points(points)
         else: 
             points = self.points    
 
+        n_points = len(points)
+        n_triangles = len(self.triangles)    
+
         lines = ['TITLE = "FFD_geom"',]
-        var_line = 'VARIABLES = "X" "Y" "Z" "ID"' #TODO: Need to append columns for all the derivatives
+        var_line = 'VARIABLES = "X" "Y" "Z" "ID" '
+        if derivs != None:
+            n_controls = len(derivs[0][0,:])
+
+            if len(derivs[0]) != n_points: 
+                raise RuntimeError('jacobian must be of length %d, but was %d'%(n_points,len(derivs[0])))
+
+            deriv_names = " ".join(('"XD%d" "YD%d" "ZD%d"'%(i,i,i) for i in xrange(0,n_controls))) #x,y,z derivs for reach control point
+            var_line += deriv_names
+
         lines.append(var_line)
 
-        lines.append('ZONE T = group0, I = %d, J = %d, F=FEPOINT'%(len(self.points),len(self.triangles))) #TODO I think this J number depends on the number of variables
+
+        lines.append('ZONE T = group0, I = %d, J = %d, F=FEPOINT'%(n_points,n_triangles)) #TODO I think this J number depends on the number of variables
         for i,p in enumerate(self.points): 
             #TODO, also have to deal with derivatives here
             #Note: point counts are 1 bias, so I have to account for that with i
-            line = "%.8f %.8f %.8f %d"%(p[0],p[1],p[2],i+1) 
+            line = "%.8f %.8f %.8f %d "%(p[0],p[1],p[2],i+1) 
+
+            if derivs != None: 
+                X = np.array(derivs[0][i,:])
+                Y = np.array(derivs[1][i,:])
+                Z = np.array(derivs[2][i,:])
+                
+                line += " ".join(('%.8f %.8f %.8f'%(x,y,z) for x,y,z in zip(X,Y,Z)))
 
             lines.append(line)
 
