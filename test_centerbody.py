@@ -21,7 +21,7 @@ start_time = time.time()
 X = centerbody.points[:,0]
 x_max = np.max(X)
 x_min = np.min(X)
-n_C = 10 #10 control points
+n_C = 5 #10 control points
 C_x = np.linspace(x_min,x_max,n_C) 
 C_r = np.zeros((n_C,))
 C = np.array(zip(C_x,C_r))
@@ -43,6 +43,8 @@ start_time = time.time()
 
 deltaC_x = [0,0,0,0,0,0,0,0,0,0]
 deltaC_r = [0,0,0,0,0,0,0,0,10,0]
+deltaC_x = [0,0,0,0,0]
+deltaC_r = [0,0,0,10,0]
 deltaC = np.array(zip(deltaC_x,deltaC_r))
 
 geom.deform(centerbody=deltaC)

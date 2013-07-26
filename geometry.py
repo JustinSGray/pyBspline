@@ -2,6 +2,8 @@ import struct
 
 from stl import ASCII_FACET, BINARY_HEADER, BINARY_FACET
 
+from ffd_arbitrary import Body, Shell
+
 
 class Geometry(object): 
 
@@ -43,7 +45,11 @@ class Geometry(object):
         """ deforms the geometry applying the new locations for the control points, given by body name"""
         for name,delta_C in kwargs.iteritems(): 
             i = self._i_comps[name]
-            self._comps[i].deform(delta_C)
+            comp = self._comps[i]
+            if isinstance(comp,Body):
+                comp.deform(delta_C)
+            else:
+                comp.deform(*delta_C)
 
     def _build_ascii_stl(self, facets): 
         """returns a list of ascii lines for the stl file """
@@ -69,7 +75,11 @@ class Geometry(object):
         
         facets = []
         for comp in self._comps: 
-            facets.extend(comp.stl.get_facets())
+            if isinstance(comp,Body): 
+               facets.extend(comp.stl.get_facets())
+            else: 
+               facets.extend(comp.outer_stl.get_facets())
+               facets.extend(comp.inner_stl.get_facets())
 
         f = open(file_name,'w')
         if ascii: 
@@ -82,26 +92,53 @@ class Geometry(object):
         f.close()
 
     def writeFEPOINT(self, file_name): 
-        """outputs an Tecplot FEPOINT file"""
+        """writes out a new FEPOINT file with the given name, using the supplied points.
+        derivs is of size (3,len(points),len(control_points)), giving matricies of 
+        X,Y,Z drivatives
+
+        jacobian should have a shape of (len(points),len(control_points))"""
         
         points = []
         triangles = []
         i_offset = 0
         for c in self._comps:
+            print c.name
             points.extend(c.coords.cartesian)
             size = len(points)
-            triangles.extend(c.stl.triangles + i_offset)
+            triangles.extend(c.stl.triangles + i_offset + 1) #tecplot wants 1 bias index, so I just increment here
             i_offset += size
 
+        n_points = len(points)
+        n_triangles = len(triangles)    
+
+        derivs = None #TODO: FIX This in a minute
+
         lines = ['TITLE = "FFD_geom"',]
-        var_line = 'VARIABLES = "X" "Y" "Z" "ID"' #TODO: Need to append columns for all the derivatives
+        var_line = 'VARIABLES = "X" "Y" "Z" "ID" '
+        if derivs != None:
+            n_controls = len(derivs[0][0,:])
+
+            if len(derivs[0]) != n_points: 
+                raise RuntimeError('jacobian must be of length %d, but was %d'%(n_points,len(derivs[0])))
+
+            deriv_names = " ".join(('"XD%d" "YD%d" "ZD%d"'%(i,i,i) for i in xrange(0,n_controls))) #x,y,z derivs for reach control point
+            var_line += deriv_names
+
         lines.append(var_line)
 
-        lines.append('ZONE T = group0, I = %d, J = %d, F=FEPOINT'%(len(points),len(triangles))) #TODO I think this J number depends on the number of variables
+
+        lines.append('ZONE T = group0, I = %d, J = %d, F=FEPOINT'%(n_points,n_triangles)) #TODO I think this J number depends on the number of variables
         for i,p in enumerate(points): 
             #TODO, also have to deal with derivatives here
             #Note: point counts are 1 bias, so I have to account for that with i
-            line = "%.8f %.8f %.8f %d"%(p[0],p[1],p[2],i+1) 
+            line = "%.8f %.8f %.8f %d "%(p[0],p[1],p[2],i+1) 
+
+            if derivs != None: 
+                X = np.array(derivs[0][i,:])
+                Y = np.array(derivs[1][i,:])
+                Z = np.array(derivs[2][i,:])
+                
+                line += " ".join(('%.8f %.8f %.8f'%(x,y,z) for x,y,z in zip(X,Y,Z)))
 
             lines.append(line)
 

@@ -120,8 +120,8 @@ class STL(object):
         self.p_count = p_count
         self.stl_indecies = np.array(stl_indecies)
         #just need to re-shape these for the assignment call later
-        self.stl_i0 = self.stl_indecies[:,:,0] #facet index from original stl
-        self.stl_i1 = self.stl_indecies[:,:,1] #index into facet
+        self.stl_i0 = self.stl_indecies[:,:,0]
+        self.stl_i1 = self.stl_indecies[:,:,1]
         self.points = np.array(points)
         self.point_indecies = point_indecies
         self.triangles = np.array(triangles)

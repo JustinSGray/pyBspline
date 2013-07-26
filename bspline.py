@@ -95,7 +95,3 @@ class Bspline(object):
         Y = dot(self.controls[:,1],b)
         return dstack((X,Y))[0]     
         
-        
- 
-          
-               
