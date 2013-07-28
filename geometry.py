@@ -1,6 +1,8 @@
 import struct
 import string
 
+import numpy as np
+
 from stl import ASCII_FACET, BINARY_HEADER, BINARY_FACET
 
 from ffd import Body, Shell
@@ -102,21 +104,22 @@ class Geometry(object):
         points = []
         triangles = []
         i_offset = 0
-        comp_i_map = {}
+        offsets = []
         n_controls = 0
+        deriv_offsets = []
         for comp in self._comps:
+            offsets.append(i_offset)
+            deriv_offsets.append(n_controls)
             if isinstance(comp,Body): 
                 points.extend(comp.stl.points)
                 size = len(points)
                 triangles.extend(comp.stl.triangles + i_offset + 1) #tecplot wants 1 bias index, so I just increment here
-                comp_i_map[comp] = i_offset
                 i_offset = size
                 n_controls += 2*comp.n_controls #X and R for each control point
             else: 
                 points.extend(comp.outer_stl.points)
                 size = len(points)
                 triangles.extend(comp.outer_stl.triangles + i_offset + 1) #tecplot wants 1 bias index, so I just increment here
-                comp_i_map[comp] = i_offset
                 i_offset = size
                 n_controls += 2*comp.n_c_controls #X and R for each control point
 
@@ -135,37 +138,59 @@ class Geometry(object):
 
         
         deriv_names = []
-        deriv_tmpl = string.Template('"${name}_${type}XD$i" "${name}_${type}YD$i" "${name}_${type}ZD$i"')
+        deriv_tmpl = string.Template('"dX_d${name}_${type}$i" "dy_d${name}_${type}$i" "dz_d${name}_${type}$i"')
         for comp in self._comps: 
-            print comp, comp.name
-
             if isinstance(comp,Body): 
-                deriv_names.extend([deriv_tmpl.substitute({'name':comp.name,'i':str(i),'type':''}) for i in xrange(0,comp.n_controls)]) #x,y,z derivs for each control point
+                deriv_names.extend([deriv_tmpl.substitute({'name':comp.name,'i':str(i),'type':'X_'}) for i in xrange(0,comp.n_controls)]) #x,y,z derivs for each control point
+                deriv_names.extend([deriv_tmpl.substitute({'name':comp.name,'i':str(i),'type':'R_'}) for i in xrange(0,comp.n_controls)]) #x,y,z derivs for each control point
             else: 
-                deriv_names.extend([deriv_tmpl.substitute({'name':comp.name,'i':str(i),'type':'C_'}) for i in xrange(0,comp.n_c_controls)]) #x,y,z derivs for each control point
+                deriv_names.extend([deriv_tmpl.substitute({'name':comp.name,'i':str(i),'type':'CX_'}) for i in xrange(0,comp.n_c_controls)]) #x,y,z derivs for each control point
+                deriv_names.extend([deriv_tmpl.substitute({'name':comp.name,'i':str(i),'type':'CR_'}) for i in xrange(0,comp.n_c_controls)]) #x,y,z derivs for each control point
                 deriv_names.extend([deriv_tmpl.substitute({'name':comp.name,'i':str(i),'type':'T_'}) for i in xrange(0,comp.n_t_controls)]) #x,y,z derivs for each control point
 
         var_line += " ".join(deriv_names)
 
         lines.append(var_line)
 
-
         lines.append('ZONE T = group0, I = %d, J = %d, F=FEPOINT'%(n_points,n_triangles)) #TODO I think this J number depends on the number of variables
+        i_comp = 0 #keep track of which comp the points came from
+        comp = self._comps[0]
+        i_offset=0
+        i_deriv_offset = 0
         for i,p in enumerate(points): 
-            #TODO, also have to deal with derivatives here
-            #Note: point counts are 1 bias, so I have to account for that with i
-            line = "%.8f %.8f %.8f %d "%(p[0],p[1],p[2],i+1) 
-            derivs = None #TODO: FIX This in a minute
-            if derivs != None: 
-                #  need to map point id to component
-                #  need to map component to slice in derivative row
-                #  initialize a zero array of right size, fill in only the slide with right values
-                #  will need to get right row from jacobian of comp
-                X = np.array(derivs[0][i,:])
-                Y = np.array(derivs[1][i,:])
-                Z = np.array(derivs[2][i,:])
-                
-                line += " ".join(('%.8f %.8f %.8f'%(x,y,z) for x,y,z in zip(X,Y,Z)))
+            line = "%.8f %.8f %.8f %d "%(p[0],p[1],p[2],i+1) #x,y,z,index coordiantes of point
+
+            if (i_comp < len(self._comps)-1) and (i == offsets[i_comp+1]): #the offset for the next comp: 
+                i_offset = i
+                i_comp += 1
+                i_deriv_offset = deriv_offsets[i_comp]
+                comp = self._comps[i_comp]
+
+            #  need to map point id to component
+            #  need to map component to slice in derivative row
+            #  initialize a zero array of right size, fill in only the slide with right values
+            #  will need to get right row from jacobian of comp
+            deriv_values = np.zeros((3*n_controls))
+            if isinstance(comp,Body): 
+                #x value
+                start = i_deriv_offset
+                end = start + 3*comp.n_controls
+                #X is only a function of the x  parameter
+                X = np.array(comp.dXqdC[i-i_offset,:])
+                deriv_values[start:end:3] = X.flatten()  
+
+                #r value
+                start = end
+                end = start + 3*comp.n_controls
+                #Y,Z are only a function of the r parameter
+                Y = np.array(comp.dYqdC[i-i_offset,:])
+                Z = np.array(comp.dZqdC[i-i_offset,:])
+                deriv_values[start+1:end:3] = Y.flatten() 
+                deriv_values[start+2:end:3] = Z.flatten() 
+            else: 
+                pass
+            
+            line += " ".join(np.char.mod('%.8f',deriv_values))
 
             lines.append(line)
 
