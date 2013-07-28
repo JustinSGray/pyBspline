@@ -188,7 +188,49 @@ class Geometry(object):
                 deriv_values[start+1:end:3] = Y.flatten() 
                 deriv_values[start+2:end:3] = Z.flatten() 
             else: 
-                pass
+                #centerline x value
+                start = i_deriv_offset
+                end = start + 3*comp.n_c_controls
+                #determine if point is on upper or lower surface? 
+                outer=True
+                deriv_i = i-i_offset
+                if i-i_offset >= comp.n_outer: 
+                    outer=False
+                    deriv_i = i-i_offset-comp.n_outer
+
+                #X is only a function of the x  parameter
+                if outer: 
+                    X = np.array(comp.dXoqdCc[deriv_i,:])
+                else: 
+                    X = np.array(comp.dXiqdCc[deriv_i,:])
+
+                deriv_values[start:end:3] = X.flatten()  
+
+                #centerline r value
+                start = end
+                end = start + 3*comp.n_c_controls
+                #Y,Z are only a function of the r parameter
+                if outer: 
+                    Y = np.array(comp.dYoqdCc[deriv_i,:])
+                    Z = np.array(comp.dZoqdCc[deriv_i,:])
+                else: 
+                    Y = np.array(comp.dYiqdCc[deriv_i,:])
+                    Z = np.array(comp.dZiqdCc[deriv_i,:])
+                deriv_values[start+1:end:3] = Y.flatten() 
+                deriv_values[start+2:end:3] = Z.flatten() 
+
+                #thickness parameter
+                start = end
+                end = start + 3*comp.n_t_controls
+                if outer: 
+                    Y = np.array(comp.dYoqdCt[deriv_i,:])
+                    Z = np.array(comp.dZoqdCt[deriv_i,:])
+                else: 
+                    Y = np.array(comp.dYiqdCt[deriv_i,:])
+                    Z = np.array(comp.dZiqdCt[deriv_i,:])
+                    
+                deriv_values[start+1:end:3] = Y.flatten() 
+                deriv_values[start+2:end:3] = Z.flatten() 
             
             line += " ".join(np.char.mod('%.8f',deriv_values))
 

@@ -137,6 +137,9 @@ class Shell(object):
         outer_points = outer_stl.points
         inner_points = inner_stl.points
 
+        self.n_outer = len(outer_points)
+        self.n_inner = len(inner_points)
+
         self.outer_coords = Coordinates(outer_points, cartesian=True)
         self.inner_coords = Coordinates(inner_points, cartesian=True)
     
