@@ -1,8 +1,9 @@
 import struct
+import string
 
 from stl import ASCII_FACET, BINARY_HEADER, BINARY_FACET
 
-from ffd_arbitrary import Body, Shell
+from ffd import Body, Shell
 
 
 class Geometry(object): 
@@ -31,7 +32,7 @@ class Geometry(object):
 
         if (name is None) and (comp.name is None): 
             name = "comp_%d"%self._n_comps
-
+        comp.name = name
         self._i_comps[name] = self._n_comps
         self._comps.append(comp)
         self._n_comps += 1
@@ -101,28 +102,50 @@ class Geometry(object):
         points = []
         triangles = []
         i_offset = 0
-        for c in self._comps:
-            print c.name
-            points.extend(c.coords.cartesian)
-            size = len(points)
-            triangles.extend(c.stl.triangles + i_offset + 1) #tecplot wants 1 bias index, so I just increment here
-            i_offset += size
+        comp_i_map = {}
+        n_controls = 0
+        for comp in self._comps:
+            if isinstance(comp,Body): 
+                points.extend(comp.stl.points)
+                size = len(points)
+                triangles.extend(comp.stl.triangles + i_offset + 1) #tecplot wants 1 bias index, so I just increment here
+                comp_i_map[comp] = i_offset
+                i_offset = size
+                n_controls += 2*comp.n_controls #X and R for each control point
+            else: 
+                points.extend(comp.outer_stl.points)
+                size = len(points)
+                triangles.extend(comp.outer_stl.triangles + i_offset + 1) #tecplot wants 1 bias index, so I just increment here
+                comp_i_map[comp] = i_offset
+                i_offset = size
+                n_controls += 2*comp.n_c_controls #X and R for each control point
+
+                points.extend(comp.inner_stl.points)
+                size = len(points)
+                triangles.extend(comp.inner_stl.triangles + i_offset + 1) #tecplot wants 1 bias index, so I just increment here
+                i_offset = size
+                n_controls += comp.n_t_controls # only R for each control point
 
         n_points = len(points)
         n_triangles = len(triangles)    
 
-        derivs = None #TODO: FIX This in a minute
-
+        
         lines = ['TITLE = "FFD_geom"',]
         var_line = 'VARIABLES = "X" "Y" "Z" "ID" '
-        if derivs != None:
-            n_controls = len(derivs[0][0,:])
 
-            if len(derivs[0]) != n_points: 
-                raise RuntimeError('jacobian must be of length %d, but was %d'%(n_points,len(derivs[0])))
+        
+        deriv_names = []
+        deriv_tmpl = string.Template('"${name}_${type}XD$i" "${name}_${type}YD$i" "${name}_${type}ZD$i"')
+        for comp in self._comps: 
+            print comp, comp.name
 
-            deriv_names = " ".join(('"XD%d" "YD%d" "ZD%d"'%(i,i,i) for i in xrange(0,n_controls))) #x,y,z derivs for reach control point
-            var_line += deriv_names
+            if isinstance(comp,Body): 
+                deriv_names.extend([deriv_tmpl.substitute({'name':comp.name,'i':str(i),'type':''}) for i in xrange(0,comp.n_controls)]) #x,y,z derivs for each control point
+            else: 
+                deriv_names.extend([deriv_tmpl.substitute({'name':comp.name,'i':str(i),'type':'C_'}) for i in xrange(0,comp.n_c_controls)]) #x,y,z derivs for each control point
+                deriv_names.extend([deriv_tmpl.substitute({'name':comp.name,'i':str(i),'type':'T_'}) for i in xrange(0,comp.n_t_controls)]) #x,y,z derivs for each control point
+
+        var_line += " ".join(deriv_names)
 
         lines.append(var_line)
 
@@ -132,8 +155,12 @@ class Geometry(object):
             #TODO, also have to deal with derivatives here
             #Note: point counts are 1 bias, so I have to account for that with i
             line = "%.8f %.8f %.8f %d "%(p[0],p[1],p[2],i+1) 
-
+            derivs = None #TODO: FIX This in a minute
             if derivs != None: 
+                #  need to map point id to component
+                #  need to map component to slice in derivative row
+                #  initialize a zero array of right size, fill in only the slide with right values
+                #  will need to get right row from jacobian of comp
                 X = np.array(derivs[0][i,:])
                 Y = np.array(derivs[1][i,:])
                 Z = np.array(derivs[2][i,:])

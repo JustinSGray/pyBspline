@@ -1,3 +1,6 @@
+import copy
+
+
 import numpy as np
 
 from bspline import Bspline
@@ -23,44 +26,66 @@ class Coordinates(object):
         else: 
             self.cylindrical = points
             X,R,Theta = points[:,0],points[:,1],points[:,2]
-            tan_Theta = np.tan(Theta)
-            Z = np.sqrt(1+tan_Theta**2/R**2)
-            Y = Z*tan_Theta
+            Z = R*np.cos(Theta)
+            Y = R*np.sin(Theta)
             self.cartesian = np.nan_to_num(np.vstack((X,Y,Z)).T)
 
-class ArbitraryBody(object): 
 
-class BodyOfRevolution(object): 
+class Body(object): 
     """FFD class for solid bodies which only have one surface""" 
     
-    def __init__(self,geom_points,control_points,name="body"): 
-    
-        self.P = geom_points
-        self.P_bar = geom_points.copy()
-        self.C = control_points  
-        self.bs = Bspline(control_points,geom_points)
+    def __init__(self,stl,controls,name="body"): 
+        """stl must be an STL object"""
+
+        self.stl = stl
+        geom_points = stl.points
+
+        self.coords = Coordinates(geom_points,cartesian=True)
+
+        self.P = self.coords.cylindrical
+        self.P_cart = self.coords.cartesian
+        self.P_bar = geom_points.copy() #just initialization
+        if isinstance(controls,int): 
+            X = geom_points[:,0]
+            x_max = np.max(X)
+            x_min = np.min(X)
+            C_x = np.linspace(x_min,x_max,controls) 
+            C_r = np.zeros((controls,))
+            control_points = np.array(zip(C_x,C_r))
+
+            self.C = control_points 
+            self.n_controls = controls
+        else: 
+            self.C = controls
+            self.n_controls = len(control_points)
+        self.bs = Bspline(self.C,geom_points)
+
         self.name = name
         
         self.r_mag = np.average(geom_points[:,1])
-
+        
 
         #for revolution of 2-d profile
-        self.n_theta = 20
+        #self.n_theta = 20
 
-        self.Theta = np.linspace(0,2*np.pi,self.n_theta)
-        self.ones = np.ones(self.n_theta)
-        self.sin_theta = np.sin(self.Theta)
-        self.cos_theta = np.cos(self.Theta)
+        #sgrab the theta values from the points 
+        self.Theta = self.P[:,2]
+        #this is too complex. shouldn't need to tile, then flatten later.
+        self.sin_theta = np.tile(np.sin(self.Theta),self.n_controls)
+        self.cos_theta = np.tile(np.cos(self.Theta),self.n_controls)
 
         #calculate derivatives
         #in polar coordinates
-        self.dP_bar_xqdC = self.bs.B.flatten()
-        self.dP_bar_rqdC = self.r_mag*self.bs.B.flatten()
+        self.dP_bar_xqdC = np.array(self.bs.B.flatten())
+        self.dP_bar_rqdC = np.array(self.r_mag*self.bs.B.flatten())
 
         #Project Polar derivatives into revolved cartisian coordinates
-        self.dXqdC = np.outer(self.dP_bar_xqdC,self.ones)
-        self.dYqdC = np.outer(self.dP_bar_rqdC,self.sin_theta)
-        self.dZqdC = np.outer(self.dP_bar_rqdC,self.cos_theta)
+        self.dXqdC = self.dP_bar_xqdC.reshape(-1,self.n_controls)
+        self.dYqdC = (self.dP_bar_rqdC*self.sin_theta).reshape(-1,self.n_controls)
+        self.dZqdC = (self.dP_bar_rqdC*self.cos_theta).reshape(-1,self.n_controls)
+
+    def copy(self): 
+        return copy.deepcopy(self)
 
     def deform(self,delta_C): 
         """returns new point locations for the given motion of the control 
@@ -68,15 +93,20 @@ class BodyOfRevolution(object):
         self.C_bar = self.C+delta_C
         
         delta_P = self.bs.calc(self.C_bar)
+
         self.P_bar = self.P.copy()
         self.P_bar[:,0] = delta_P[:,0]
-        self.P_bar[:,1] = self.P[:,1]+self.r_mag*delta_P[:,1] 
+        self.P_bar[:,1] = self.P[:,1]+self.r_mag*delta_P[:,1]
 
-        #Perform axial roation of 2-d polar coordiantes
-        P_bar_r = self.P_bar[:,1]
-        self.Xo = np.outer(self.P_bar[:,0],self.ones)
-        self.Yo = np.outer(P_bar_r,self.sin_theta)
-        self.Zo = np.outer(P_bar_r,self.cos_theta)
+        #transform to cartesian coordinates
+        self.coords = Coordinates(self.P_bar,cartesian=False)
+
+        self.P_bar_cart = self.coords.cartesian
+        self.Xo = self.P_bar_cart[:,0]
+        self.Yo = self.P_bar_cart[:,1]
+        self.Zo = self.P_bar_cart[:,2]
+
+        self.stl.update_points(self.P_bar_cart)
 
         return self.P_bar
 
@@ -87,71 +117,115 @@ class BodyOfRevolution(object):
 
     def plot_geom(self,ax,initial_color='g',ffd_color='k'): 
         if initial_color: 
-            ax.scatter(self.P[:,0],self.P[:,1],c=initial_color,s=50,label="%s initial geom"%self.name)
-            ax.plot(self.P[:,0],self.P[:,1],c=initial_color)
+            ax.scatter(self.P[10:20,0],self.P[10:20,1],c=initial_color,s=50,label="%s initial geom"%self.name)
+            ax.plot(self.P[:10,0],self.P[:10,1],c=initial_color)
         if ffd_color:     
-            ax.scatter(self.P_bar[:,0],self.P_bar[:,1],c=ffd_color,s=50,label="%s ffd geom"%self.name) 
-            ax.plot(self.P_bar[:,0],self.P_bar[:,1],c=ffd_color)
+            ax.scatter(self.P_bar[:10,0],self.P_bar[:10,1],c=ffd_color,s=50,label="%s ffd geom"%self.name) 
+            ax.plot(self.P_bar[:10,0],self.P_bar[:10,1],c=ffd_color)
 
 
                     
         
-class ShellOfRevolution(object): 
+class Shell(object): 
     """FFD class for shell bodies which have two connected surfaces"""
     
-    def __init__(self,upper_points,lower_points,center_iine_controls,thickness_controls,name='shell'): 
+    def __init__(self,outer_stl,inner_stl,center_line_controls,thickness_controls,name='shell'): 
+
+        self.outer_stl = outer_stl
+        self.inner_stl = inner_stl
+
+        outer_points = outer_stl.points
+        inner_points = inner_stl.points
+
+        self.outer_coords = Coordinates(outer_points, cartesian=True)
+        self.inner_coords = Coordinates(inner_points, cartesian=True)
     
-        self.Po = upper_points
-        self.Pi = lower_points
-        self.Po_bar = upper_points.copy()
-        self.Pi_bar = lower_points.copy()
+        self.Po = self.outer_coords.cylindrical
+        self.Pi = self.inner_coords.cylindrical
+        self.Po_cart = self.outer_coords.cartesian
+        self.Pi_cart = self.inner_coords.cartesian
+        #just initialization for array size
+        self.Po_bar = outer_points.copy()
+        self.Pi_bar = inner_points.copy()
         self.name = name
         
-        self.Cc = center_iine_controls
-        self.Ct = thickness_controls 
+        if isinstance(center_line_controls,int): 
+            X = outer_points[:,0]
+            x_max = np.max(X)
+            x_min = np.min(X)
+            C_x = np.linspace(x_min,x_max,controls) 
+            C_r = np.zeros((controls,))
+            control_points = np.array(zip(C_x,C_r))
+
+            self.Cc = control_points
+            self.n_c_controls = center_line_controls
+        else: 
+            self.Cc = center_line_controls
+            self.n_c_controls = len(center_line_controls)
+
+        if isinstance(thickness_controls,int): 
+            X = inner_points[:,0]
+            x_max = np.max(X)
+            x_min = np.min(X)
+            C_x = np.linspace(x_min,x_max,controls) 
+            C_r = np.zeros((controls,))
+            control_points = np.array(zip(C_x,C_r))
+            self.Ct = control_points
+            self.n_t_controls = thickness_controls
+        else: 
+            self.Ct = thickness_controls 
+            self.n_t_controls = len(thickness_controls)
+
          
-        self.bsc_o = Bspline(self.Cc,upper_points)
-        self.bsc_i = Bspline(self.Cc,lower_points)
+        self.bsc_o = Bspline(self.Cc,outer_points)
+        self.bsc_i = Bspline(self.Cc,inner_points)
         
-        self.bst_o = Bspline(self.Ct,upper_points)
-        self.bst_i = Bspline(self.Ct,lower_points)
+        self.bst_o = Bspline(self.Ct,outer_points)
+        self.bst_i = Bspline(self.Ct,inner_points)
         
-        self.r_mag = np.average(upper_points[:,1])
+        self.r_mag = np.average(outer_points[:,1])
 
-        #for revolution of 2-d profile
-        self.n_theta = 20
 
-        self.Theta = np.linspace(0,2*np.pi,self.n_theta)
-        self.ones = np.ones(self.n_theta)
-        self.sin_theta = np.sin(self.Theta)
-        self.cos_theta = np.cos(self.Theta)
+        self.outer_theta = self.Po[:,2]
+        self.sin_outer_c_theta = np.tile(np.sin(self.outer_theta),self.n_c_controls)
+        self.cos_outer_c_theta = np.tile(np.cos(self.outer_theta),self.n_c_controls)
+        self.sin_outer_t_theta = np.tile(np.sin(self.outer_theta),self.n_t_controls)
+        self.cos_outer_t_theta = np.tile(np.cos(self.outer_theta),self.n_t_controls)
+
+        self.inner_theta = self.Pi[:,2]
+        self.sin_inner_c_theta = np.tile(np.sin(self.inner_theta),self.n_c_controls)
+        self.cos_inner_c_theta = np.tile(np.cos(self.inner_theta),self.n_c_controls)
+        self.sin_inner_t_theta = np.tile(np.sin(self.inner_theta),self.n_t_controls)
+        self.cos_inner_t_theta = np.tile(np.cos(self.inner_theta),self.n_t_controls)
 
         #calculate derivatives
         #in polar coordinates
-        self.dPo_bar_xqdCc = self.bsc_o.B.flatten()
-        self.dPo_bar_rqdCc = self.r_mag*self.bsc_o.B.flatten()
+        self.dPo_bar_xqdCc = np.array(self.bsc_o.B.flatten())
+        self.dPo_bar_rqdCc = np.array(self.r_mag*self.bsc_o.B.flatten())
 
-        self.dPi_bar_xqdCc = self.bsc_i.B.flatten()
-        self.dPi_bar_rqdCc = self.r_mag*self.bsc_i.B.flatten()
+        self.dPi_bar_xqdCc = np.array(self.bsc_i.B.flatten())
+        self.dPi_bar_rqdCc = np.array(self.r_mag*self.bsc_i.B.flatten())
 
-        self.dPo_bar_rqdCt = self.r_mag*self.bst_o.B.flatten()
-        self.dPi_bar_rqdCt = -1*self.r_mag*self.bst_i.B.flatten()
+        self.dPo_bar_rqdCt = np.array(self.r_mag*self.bst_o.B.flatten())
+        self.dPi_bar_rqdCt = -1*np.array(self.r_mag*self.bst_i.B.flatten())
 
         #Project Polar derivatives into revolved cartisian coordinates
-        self.dXoqdCc = np.outer(self.dPo_bar_xqdCc,self.ones)
-        self.dYoqdCc = np.outer(self.dPo_bar_rqdCc,self.sin_theta)
-        self.dZoqdCc = np.outer(self.dPo_bar_rqdCc,self.cos_theta)
+        self.dXoqdCc = self.dPo_bar_xqdCc.reshape(-1,self.n_c_controls)
+        self.dYoqdCc = (self.dPo_bar_rqdCc*self.sin_outer_c_theta).reshape(-1,self.n_c_controls)
+        self.dZoqdCc = (self.dPo_bar_rqdCc*self.cos_outer_c_theta).reshape(-1,self.n_c_controls)
 
-        self.dXiqdCc = np.outer(self.dPi_bar_xqdCc,self.ones)
-        self.dYiqdCc = np.outer(self.dPi_bar_rqdCc,self.sin_theta)
-        self.dZiqdCc = np.outer(self.dPi_bar_rqdCc,self.cos_theta)
+        self.dXiqdCc = self.dPi_bar_xqdCc.reshape(-1,self.n_c_controls)
+        self.dYiqdCc = (self.dPi_bar_rqdCc*self.sin_inner_c_theta).reshape(-1,self.n_c_controls)
+        self.dZiqdCc = (self.dPi_bar_rqdCc*self.cos_inner_c_theta).reshape(-1,self.n_c_controls)
 
-        self.dYoqdCt = np.outer(self.dPo_bar_rqdCt,self.sin_theta)
-        self.dZoqdCt = np.outer(self.dPo_bar_rqdCt,self.cos_theta)
-        self.dYiqdCt = np.outer(self.dPi_bar_rqdCt,self.sin_theta)
-        self.dZiqdCt = np.outer(self.dPi_bar_rqdCt,self.cos_theta)
+        self.dYoqdCt = (self.dPo_bar_rqdCt*self.sin_outer_t_theta).reshape(-1,self.n_t_controls)
+        self.dZoqdCt = (self.dPo_bar_rqdCt*self.cos_outer_t_theta).reshape(-1,self.n_t_controls)
+        self.dYiqdCt = (self.dPi_bar_rqdCt*self.sin_inner_t_theta).reshape(-1,self.n_t_controls)
+        self.dZiqdCt = (self.dPi_bar_rqdCt*self.cos_inner_t_theta).reshape(-1,self.n_t_controls)
 
-    
+    def copy(self): 
+        return copy.deepcopy(self)
+
     def plot_geom(self,ax,initial_color='g',ffd_color='k'):
         if initial_color: 
             ax.scatter(self.Po[:,0],self.Po[:,1],c=initial_color,s=50,label="%s initial geom"%self.name)
@@ -171,7 +245,7 @@ class ShellOfRevolution(object):
 
     def plot_thickness_spline(self,ax,point_color='r',line_color='b'):
         ax.scatter(self.Ct_bar[:,0],self.Ct_bar[:,1],c=point_color,s=50,label="%s Thickness Control Points"%self.name)
-        map_points = self.bsc_o(np.linspace(0,1,100))
+        map_points = self.bst_o(np.linspace(0,1,100))
         ax.plot(map_points[:,0],map_points[:,1],label="Thickness b-spline Curve",c=line_color)
 
 
@@ -195,21 +269,27 @@ class ShellOfRevolution(object):
         
         self.Pi_bar[:,0] = delta_Pc_i[:,0]
         self.Pi_bar[:,1] = self.Pi[:,1]+self.r_mag*(delta_Pc_i[:,1]-delta_Pt_i[:,1])
-        
+
+        #transform to cartesian coordinates
+        self.outer_coords = Coordinates(self.Po_bar,cartesian=False)
+        self.inner_coords = Coordinates(self.Pi_bar,cartesian=False)
         
         #Perform axial roation of 2-d polar coordiantes
         #outer surface
-        Po_bar_r = self.Po_bar[:,1]
-        self.Xo = np.outer(self.Po_bar[:,0],self.ones)
-        self.Yo = np.outer(Po_bar_r,self.sin_theta)
-        self.Zo = np.outer(Po_bar_r,self.cos_theta)
+        self.Po_bar_cart = self.outer_coords.cartesian
+        self.Xo = self.Po_bar_cart[:,0]
+        self.Yo = self.Po_bar_cart[:,1]
+        self.Zo = self.Po_bar_cart[:,2]
+
+        self.outer_stl.update_points(self.Po_bar_cart)
 
         #inner surface
-        Pi_bar_r = self.Pi_bar[:,1]
-        self.Xi = np.outer(self.Pi_bar[:,0],self.ones)
-        self.Yi = np.outer(Pi_bar_r,self.sin_theta)
-        self.Zi = np.outer(Pi_bar_r,self.cos_theta)
+        self.Pi_bar_cart = self.inner_coords.cartesian
+        self.Xi = self.Po_bar_cart[:,0]
+        self.Yi = self.Po_bar_cart[:,1]
+        self.Zi = self.Po_bar_cart[:,2]
 
+        self.inner_stl.update_points(self.Pi_bar_cart)
 
         return self.Po_bar,self.Pi_bar
 

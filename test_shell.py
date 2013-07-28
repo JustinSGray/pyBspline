@@ -2,7 +2,7 @@ import numpy as np
 
 import time 
 
-from ffd_arbitrary import Shell
+from ffd import Shell
 from stl import STL
 from geometry import Geometry
 
