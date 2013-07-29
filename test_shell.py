@@ -62,9 +62,18 @@ geom.deform(cowl=(deltaC_c, deltaC_t))
 
 
 print "Run Time: ", time.time()-start_time
-    
+start_time = time.time()
+
 geom.writeSTL('new.stl', ascii=False)
+
+print "STL Write Time: ", time.time()-start_time
+start_time = time.time()
+
+
 geom.writeFEPOINT('deform.dat')
+
+print "FEPoint Write Time: ", time.time()-start_time
+
 
 #geometry.writeSTL('new.stl',body.coords.cartesian,ascii=False)
 #centerbody.writeFEPOINT('deform.dat',body.coords.cartesian)

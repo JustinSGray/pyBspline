@@ -2,6 +2,7 @@ import struct
 import string
 
 import numpy as np
+from scipy.sparse import csr_matrix
 
 from stl import ASCII_FACET, BINARY_HEADER, BINARY_FACET
 
@@ -73,34 +74,7 @@ class Geometry(object):
             lines.append(struct.pack(BINARY_FACET,*facet))  
         return lines      
 
-    def writeSTL(self, file_name, ascii=False): 
-        """outputs an STL file"""
-        
-        facets = []
-        for comp in self._comps: 
-            if isinstance(comp,Body): 
-               facets.extend(comp.stl.get_facets())
-            else: 
-               facets.extend(comp.outer_stl.get_facets())
-               facets.extend(comp.inner_stl.get_facets())
-
-        f = open(file_name,'w')
-        if ascii: 
-            lines = self._build_ascii_stl(facets)
-            f.write("\n".join(lines))
-        else: 
-            data = self._build_binary_stl(facets)
-            f.write("".join(data))
-
-        f.close()
-
-    def writeFEPOINT(self, file_name): 
-        """writes out a new FEPOINT file with the given name, using the supplied points.
-        derivs is of size (3,len(points),len(control_points)), giving matricies of 
-        X,Y,Z drivatives
-
-        jacobian should have a shape of (len(points),len(control_points))"""
-        
+    def linearize(self): 
         points = []
         triangles = []
         i_offset = 0
@@ -129,48 +103,32 @@ class Geometry(object):
                 i_offset = size
                 n_controls += comp.n_t_controls # only R for each control point
 
-        n_points = len(points)
-        n_triangles = len(triangles)    
+        self.points = points
+        self.n_points = len(points)
+        self.triangles = triangles
+        self.n_triangles = len(triangles)
+        self.offsets = offsets
+        self.deriv_offsets = deriv_offsets
 
-        
-        lines = ['TITLE = "FFD_geom"',]
-        var_line = 'VARIABLES = "X" "Y" "Z" "ID" '
-
-        
-        deriv_names = []
-        deriv_tmpl = string.Template('"dX_d${name}_${type}$i" "dy_d${name}_${type}$i" "dz_d${name}_${type}$i"')
-        for comp in self._comps: 
-            if isinstance(comp,Body): 
-                deriv_names.extend([deriv_tmpl.substitute({'name':comp.name,'i':str(i),'type':'X_'}) for i in xrange(0,comp.n_controls)]) #x,y,z derivs for each control point
-                deriv_names.extend([deriv_tmpl.substitute({'name':comp.name,'i':str(i),'type':'R_'}) for i in xrange(0,comp.n_controls)]) #x,y,z derivs for each control point
-            else: 
-                deriv_names.extend([deriv_tmpl.substitute({'name':comp.name,'i':str(i),'type':'CX_'}) for i in xrange(0,comp.n_c_controls)]) #x,y,z derivs for each control point
-                deriv_names.extend([deriv_tmpl.substitute({'name':comp.name,'i':str(i),'type':'CR_'}) for i in xrange(0,comp.n_c_controls)]) #x,y,z derivs for each control point
-                deriv_names.extend([deriv_tmpl.substitute({'name':comp.name,'i':str(i),'type':'T_'}) for i in xrange(0,comp.n_t_controls)]) #x,y,z derivs for each control point
-
-        var_line += " ".join(deriv_names)
-
-        lines.append(var_line)
-
-        lines.append('ZONE T = group0, I = %d, J = %d, F=FEPOINT'%(n_points,n_triangles)) #TODO I think this J number depends on the number of variables
         i_comp = 0 #keep track of which comp the points came from
         comp = self._comps[0]
         i_offset=0
         i_deriv_offset = 0
+        Jdata = []
+        Jrow = []
+        Jcolumn = []
         for i,p in enumerate(points): 
-            line = "%.8f %.8f %.8f %d "%(p[0],p[1],p[2],i+1) #x,y,z,index coordiantes of point
 
+            #map point index to proper component
             if (i_comp < len(self._comps)-1) and (i == offsets[i_comp+1]): #the offset for the next comp: 
                 i_offset = i
                 i_comp += 1
                 i_deriv_offset = deriv_offsets[i_comp]
                 comp = self._comps[i_comp]
 
-            #  need to map point id to component
-            #  need to map component to slice in derivative row
-            #  initialize a zero array of right size, fill in only the slide with right values
-            #  will need to get right row from jacobian of comp
-            deriv_values = np.zeros((3*n_controls))
+
+            deriv_values = np.zeros((3*n_controls,))
+            
             if isinstance(comp,Body): 
                 #x value
                 start = i_deriv_offset
@@ -228,15 +186,75 @@ class Geometry(object):
                 else: 
                     Y = np.array(comp.dYiqdCt[deriv_i,:])
                     Z = np.array(comp.dZiqdCt[deriv_i,:])
-                    
+
                 deriv_values[start+1:end:3] = Y.flatten() 
                 deriv_values[start+2:end:3] = Z.flatten() 
+
+            Jdata.append(deriv_values)
+        self.J = np.array(Jdata)
+
+    def writeSTL(self, file_name, ascii=False): 
+        """outputs an STL file"""
+        
+        facets = []
+        for comp in self._comps: 
+            if isinstance(comp,Body): 
+               facets.extend(comp.stl.get_facets())
+            else: 
+               facets.extend(comp.outer_stl.get_facets())
+               facets.extend(comp.inner_stl.get_facets())
+
+        f = open(file_name,'w')
+        if ascii: 
+            lines = self._build_ascii_stl(facets)
+            f.write("\n".join(lines))
+        else: 
+            data = self._build_binary_stl(facets)
+            f.write("".join(data))
+
+        f.close()
+
+    def writeFEPOINT(self, file_name): 
+        """writes out a new FEPOINT file with the given name, using the supplied points.
+        derivs is of size (3,len(points),len(control_points)), giving matricies of 
+        X,Y,Z drivatives
+
+        jacobian should have a shape of (len(points),len(control_points))"""
+        
+        self.linearize()
+  
+        
+        lines = ['TITLE = "FFD_geom"',]
+        var_line = 'VARIABLES = "X" "Y" "Z" "ID" '
+
+        
+        deriv_names = []
+        deriv_tmpl = string.Template('"dX_d${name}_${type}$i" "dy_d${name}_${type}$i" "dz_d${name}_${type}$i"')
+        for comp in self._comps: 
+            if isinstance(comp,Body): 
+                deriv_names.extend([deriv_tmpl.substitute({'name':comp.name,'i':str(i),'type':'X_'}) for i in xrange(0,comp.n_controls)]) #x,y,z derivs for each control point
+                deriv_names.extend([deriv_tmpl.substitute({'name':comp.name,'i':str(i),'type':'R_'}) for i in xrange(0,comp.n_controls)]) #x,y,z derivs for each control point
+            else: 
+                deriv_names.extend([deriv_tmpl.substitute({'name':comp.name,'i':str(i),'type':'CX_'}) for i in xrange(0,comp.n_c_controls)]) #x,y,z derivs for each control point
+                deriv_names.extend([deriv_tmpl.substitute({'name':comp.name,'i':str(i),'type':'CR_'}) for i in xrange(0,comp.n_c_controls)]) #x,y,z derivs for each control point
+                deriv_names.extend([deriv_tmpl.substitute({'name':comp.name,'i':str(i),'type':'T_'}) for i in xrange(0,comp.n_t_controls)]) #x,y,z derivs for each control point
+
+        var_line += " ".join(deriv_names)
+
+        lines.append(var_line)
+
+        lines.append('ZONE T = group0, I = %d, J = %d, F=FEPOINT'%(self.n_points,self.n_triangles)) #TODO I think this J number depends on the number of variables
+        
+        for i,p in enumerate(self.points): 
+            line = "%.8f %.8f %.8f %d "%(p[0],p[1],p[2],i+1) #x,y,z,index coordiantes of point
+
+            deriv_values = self.J[i]
             
             line += " ".join(np.char.mod('%.8f',deriv_values))
 
             lines.append(line)
 
-        for tri in triangles: 
+        for tri in self.triangles: 
             line = "%d %d %d %d"%(tri[0],tri[1],tri[2],tri[2])
             lines.append(line)
 
