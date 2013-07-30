@@ -28,4 +28,14 @@ C_x = np.linspace(x_min,x_max,n_C)
 C_r = np.zeros((n_C,))
 C = np.array(zip(C_x,C_r))
 
-body = Body(centerbody,C,name="centerbody")
+centerbody = Body(centerbody,controls=5,name="centerbody")
+cowl = Shell(outer_cowl,inner_cowl,5,5,name="cowl")
+shroud = Shell(outer_shroud,inner_shroud,5,5,name="shroud")
+
+geom = Geometry()
+geom.add(centerbody)
+geom.add(cowl)
+geom.add(shroud)
+
+print "Geom Calc Time: ", time.time()-start_time
+start_time = time.time()

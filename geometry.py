@@ -43,7 +43,16 @@ class Geometry(object):
 
     def get_parameters(self): 
         """ returns a dictionary of parameters sets key'd to component names"""
-        pass
+        
+        params = {}
+        for comp in self._comps: 
+            name = comp.name
+            if isinstance(comp, Body): 
+                params['%s.thickness'%name] = comp.C_bar
+            else: 
+                params['%s.thickness'%name] = comp.Cc_bar
+                params['%s.centerline'%name] = comp.Ct_bar
+
 
     def deform(self,**kwargs): 
         """ deforms the geometry applying the new locations for the control points, given by body name"""
@@ -229,7 +238,7 @@ class Geometry(object):
 
         
         deriv_names = []
-        deriv_tmpl = string.Template('"dX_d${name}_${type}$i" "dy_d${name}_${type}$i" "dz_d${name}_${type}$i"')
+        deriv_tmpl = string.Template('"dx_d${name}_${type}$i" "dy_d${name}_${type}$i" "dz_d${name}_${type}$i"')
         for comp in self._comps: 
             if isinstance(comp,Body): 
                 deriv_names.extend([deriv_tmpl.substitute({'name':comp.name,'i':str(i),'type':'X_'}) for i in xrange(0,comp.n_controls)]) #x,y,z derivs for each control point

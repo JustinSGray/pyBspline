@@ -23,7 +23,7 @@ body = Body(centerbody,controls=n_c) #just makes n_C evenly spaced points
 body0 = body.copy()
 
 geom = Geometry()
-geom.add(body0,name="cb0")
+#geom.add(body0,name="cb0")
 geom.add(body,name="centerbody")
 
 #params = geom.get_params() #params['centerbody'] = [(0,0),]
@@ -33,7 +33,7 @@ start_time = time.time()
 
 deltaC_x = np.zeros((n_c,))
 deltaC_r = np.zeros((n_c,))
-deltaC_r[-2] = 10 #second to last element, set to 10
+deltaC_r[-1] = 10 #second to last element, set to 10
 deltaC = np.array(zip(deltaC_x,deltaC_r))
 
 geom.deform(centerbody=deltaC)

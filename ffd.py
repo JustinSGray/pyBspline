@@ -58,11 +58,11 @@ class Body(object):
         else: 
             self.C = controls
             self.n_controls = len(control_points)
+        self.C_bar = self.C.copy()
         self.bs = Bspline(self.C,geom_points)
 
         self.name = name
-        
-        self.r_mag = np.average(geom_points[:,1])
+        self.r_mag = np.average(np.abs(geom_points[:,1]))
         
 
         #for revolution of 2-d profile
@@ -89,7 +89,7 @@ class Body(object):
 
     def deform(self,delta_C): 
         """returns new point locations for the given motion of the control 
-        points"""         
+        points"""      
         self.C_bar = self.C+delta_C
         
         delta_P = self.bs.calc(self.C_bar)
@@ -109,19 +109,6 @@ class Body(object):
         self.stl.update_points(self.P_bar_cart)
 
         return self.P_bar
-
-    def plot_spline(self,ax,point_color='r',line_color='b'): 
-        map_points = self.bs(np.linspace(0,1,100))
-        ax.plot(map_points[:,0],map_points[:,1],c=line_color,label="%s b-spline"%self.name)
-        ax.scatter(self.C_bar[:,0],self.C_bar[:,1],c=point_color,label="%s control points"%self.name,s=50) 
-
-    def plot_geom(self,ax,initial_color='g',ffd_color='k'): 
-        if initial_color: 
-            ax.scatter(self.P[10:20,0],self.P[10:20,1],c=initial_color,s=50,label="%s initial geom"%self.name)
-            ax.plot(self.P[:10,0],self.P[:10,1],c=initial_color)
-        if ffd_color:     
-            ax.scatter(self.P_bar[:10,0],self.P_bar[:10,1],c=ffd_color,s=50,label="%s ffd geom"%self.name) 
-            ax.plot(self.P_bar[:10,0],self.P_bar[:10,1],c=ffd_color)
 
 
                     
@@ -156,8 +143,8 @@ class Shell(object):
             X = outer_points[:,0]
             x_max = np.max(X)
             x_min = np.min(X)
-            C_x = np.linspace(x_min,x_max,controls) 
-            C_r = np.zeros((controls,))
+            C_x = np.linspace(x_min,x_max,center_line_controls) 
+            C_r = np.zeros((center_line_controls,))
             control_points = np.array(zip(C_x,C_r))
 
             self.Cc = control_points
@@ -165,19 +152,21 @@ class Shell(object):
         else: 
             self.Cc = center_line_controls
             self.n_c_controls = len(center_line_controls)
+        self.Cc_bar = self.Cc.copy()
 
         if isinstance(thickness_controls,int): 
             X = inner_points[:,0]
             x_max = np.max(X)
             x_min = np.min(X)
-            C_x = np.linspace(x_min,x_max,controls) 
-            C_r = np.zeros((controls,))
+            C_x = np.linspace(x_min,x_max,thickness_controls) 
+            C_r = np.zeros((thickness_controls,))
             control_points = np.array(zip(C_x,C_r))
             self.Ct = control_points
             self.n_t_controls = thickness_controls
         else: 
             self.Ct = thickness_controls 
             self.n_t_controls = len(thickness_controls)
+        self.Ct_bar = self.Ct.copy()
 
          
         self.bsc_o = Bspline(self.Cc,outer_points)
@@ -186,7 +175,7 @@ class Shell(object):
         self.bst_o = Bspline(self.Ct,outer_points)
         self.bst_i = Bspline(self.Ct,inner_points)
         
-        self.r_mag = np.average(outer_points[:,1])
+        self.r_mag = np.average(np.abs(outer_points[:,1]))
 
 
         self.outer_theta = self.Po[:,2]

@@ -134,7 +134,6 @@ class STL(object):
 
         if points.shape != self.points.shape:
             raise IndexError("The provided points set has a different shape than the original. They must be the same")
-
         #set the deformed points back into the original array 
         self.points = points 
         return points
