@@ -87,7 +87,7 @@ class Geometry(object):
             lines.append(struct.pack(BINARY_FACET,*facet))  
         return lines      
 
-    def linearize(self): 
+    def _linearize(self): 
         if not self._needs_linerize: 
             return 
 
@@ -238,7 +238,7 @@ class Geometry(object):
 
         jacobian should have a shape of (len(points),len(control_points))"""
         
-        self.linearize()
+        self._linearize()
   
         
         lines = ['TITLE = "FFD_geom"',]
@@ -279,4 +279,37 @@ class Geometry(object):
         f = open(file_name,'w')
         f.write("\n".join(lines))
         f.close()
+
+    def project_profile(self): 
+        self._linearize()
+
+        point_sets = []
+        for comp in self._comps: 
+            if isinstance(comp,Body):
+                points = []
+                for p in comp.stl.points: 
+                    if abs(p[2]) < .0001 and p[1] > 0 : 
+                        points.append(p)
+                points = np.array(points)
+                points = points[points[:,0].argsort()]
+                point_sets.append(points)
+            else: 
+                points = []
+                for p in comp.outer_stl.points: 
+                    if abs(p[2]) < .0001 and p[1] > 0 : 
+                        points.append(p)
+                points = np.array(points)
+                points = points[points[:,0].argsort()]
+                point_sets.append(points)
+
+                points = [] 
+                for p in comp.inner_stl.points: 
+                    if abs(p[2]) < .0001 and p[1] > 0 : 
+                        points.append(p)
+                points = np.array(points)
+                points = points[points[:,0].argsort()]
+                point_sets.append(points)
+
+        return point_sets
+
 

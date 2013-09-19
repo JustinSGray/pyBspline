@@ -55,3 +55,14 @@ geom.writeSTL('new.stl', ascii=False)
 
 print "STL Write Time: ", time.time()-start_time
 start_time = time.time()
+
+
+import pylab as p
+profile = geom.project_profile()
+for point_set in profile: 
+    X = point_set[:,0]
+    Y = point_set[:,1]
+    p.plot(X,Y)
+
+p.show()
+
