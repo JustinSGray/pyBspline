@@ -1,6 +1,5 @@
 import copy
 
-
 import numpy as np
 
 from bspline import Bspline

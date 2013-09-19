@@ -15,16 +15,19 @@ print "STL Load Time: ", time.time()-start_time
 start_time = time.time()
 
 
-
 n_c = 10
 body = Body(plug,controls=n_c) #just makes n_C evenly spaced points
 shell = Shell(cowl,cowl.copy(),n_c,n_c)
+
+print "Bspline Compute Time: ", time.time()-start_time
+start_time = time.time()
+
 
 geom = Geometry()
 geom.add(body,name="plug")
 geom.add(shell,name="cowl")
 
-print "Bspline Compute Time: ", time.time()-start_time
+print "Geometry Object Building: ", time.time()-start_time
 start_time = time.time()
 
 deltaC_x = np.zeros((n_c,))

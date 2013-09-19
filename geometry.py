@@ -17,6 +17,8 @@ class Geometry(object):
         self._i_comps = {}
         self._n_comps = 0 
 
+        self._needs_linerize = True
+
 
     def _get_points_and_tris(self): 
         """returns all the points and triangle indecies in the whole geometry""" 
@@ -39,6 +41,8 @@ class Geometry(object):
         self._i_comps[name] = self._n_comps
         self._comps.append(comp)
         self._n_comps += 1
+
+        self._needs_linerize = True
 
 
     def get_parameters(self): 
@@ -84,6 +88,9 @@ class Geometry(object):
         return lines      
 
     def linearize(self): 
+        if not self._needs_linerize: 
+            return 
+
         points = []
         triangles = []
         i_offset = 0
@@ -201,6 +208,7 @@ class Geometry(object):
 
             Jdata.append(deriv_values)
         self.J = np.array(Jdata)
+        self._needs_linerize = False
 
     def writeSTL(self, file_name, ascii=False): 
         """outputs an STL file"""
