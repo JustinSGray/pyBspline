@@ -161,9 +161,6 @@ class STL(object):
 
         cPickle.dump(pkl_data,open(pkl_file_name,'w'))
 
-
-
-
     def copy(self): 
         return copy.deepcopy(self)
 

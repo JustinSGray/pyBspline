@@ -2,7 +2,7 @@ import time
 import numpy as np
 
 from stl import STL
-from ffd import Body, Shell
+from ffd_axisymmetric import Body, Shell
 from geometry import Geometry
 
 

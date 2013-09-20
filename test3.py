@@ -2,7 +2,7 @@ import numpy as np
 import pylab
 from mpl_toolkits.mplot3d import Axes3D
 
-from ffd import Body
+from ffd_axisymmetric import Body
 
 
 #Baseline geometry

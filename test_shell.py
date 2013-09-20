@@ -2,7 +2,7 @@ import numpy as np
 
 import time 
 
-from ffd import Shell
+from ffd_axisymmetric import Shell
 from stl import STL
 from geometry import Geometry
 
