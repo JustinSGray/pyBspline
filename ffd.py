@@ -66,7 +66,7 @@ class Body(object):
         else: 
             indecies = np.logical_and(abs(geom_points[:,2])<.0001, geom_points[:,1]>0)
             points = geom_points[indecies]
-            self.r_mag = np.average(points[:,1])
+            self.r_mag = 10**np.floor(np.log10(np.max(points[:,1]))) #grab the order of magnitude of the max
         
 
         #for revolution of 2-d profile
@@ -185,7 +185,7 @@ class Shell(object):
         else: 
             indecies = np.logical_and(abs(outer_points[:,2])<.0001, outer_points[:,1]>0)
             points = outer_points[indecies]
-            self.r_mag = np.average(points[:,1])
+            self.r_mag = 10**np.floor(np.log10(np.max(points[:,1]))) #grab the order of magnitude of the max
 
 
         self.outer_theta = self.Po[:,2]

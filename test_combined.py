@@ -28,9 +28,9 @@ C_x = np.linspace(x_min,x_max,n_C)
 C_r = np.zeros((n_C,))
 C = np.array(zip(C_x,C_r))
 
-centerbody = Body(centerbody, controls=n_C, r_ref=100.)
-cowl = Shell(outer_cowl, inner_cowl, n_C, n_C, r_ref=100.)
-shroud = Shell(outer_shroud, inner_shroud, n_C, n_C, r_ref=100.)
+centerbody = Body(centerbody, controls=n_C)
+cowl = Shell(outer_cowl, inner_cowl, n_C, n_C)
+shroud = Shell(outer_shroud, inner_shroud, n_C, n_C)
 
 geom = Geometry()
 geom.add(centerbody, name="centerbody")
