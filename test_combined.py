@@ -41,6 +41,7 @@ print "Geom Calc Time: ", time.time()-start_time
 start_time = time.time()
 
 deltaC_x = np.zeros((n_C,))
+deltaC_x[3:] = 1
 deltaC_r = np.zeros((n_C,))
 deltaC_r[3] = 1 #second to last element, set to 10
 deltaC = np.array(zip(deltaC_x,deltaC_r))
@@ -48,7 +49,7 @@ geom.deform(centerbody=deltaC)
 
 deltaC_cx = np.zeros((n_C,))
 deltaC_cr = np.zeros((n_C,))
-deltaC_cx[2:] = 2000 #second to last element, set to 10
+deltaC_cx[2:] = 0 #second to last element, set to 10
 deltaC_c = np.array(zip(deltaC_cx,deltaC_cr))
 deltaC_tx = np.zeros((n_C,))
 deltaC_tr = np.zeros((n_C,))

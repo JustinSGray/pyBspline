@@ -33,7 +33,7 @@ class Coordinates(object):
 class Body(object): 
     """FFD class for solid bodies which only have one surface""" 
     
-    def __init__(self,stl,controls,name="body", r_ref=None): 
+    def __init__(self,stl,controls,name="body", r_ref=None, x_ref=None): 
         """stl must be an STL object"""
 
         self.stl = stl
@@ -61,12 +61,18 @@ class Body(object):
         self.bs = Bspline(self.C,geom_points)
 
         self.name = name
+
+        if x_ref is not None: 
+            self.x_mag = float(x_ref)
+        else: 
+            self.x_mag = 10**np.floor(np.log10(np.average(geom_points[:,0])))
+
         if r_ref is not None: 
             self.r_mag = float(r_ref)
         else: 
             indecies = np.logical_and(abs(geom_points[:,2])<.0001, geom_points[:,1]>0)
             points = geom_points[indecies]
-            self.r_mag = 10**np.floor(np.log10(np.max(points[:,1]))) #grab the order of magnitude of the max
+            self.r_mag = 10**np.floor(np.log10(np.average(points[:,1]))) #grab the order of magnitude of the average
         
 
         #for revolution of 2-d profile
@@ -80,7 +86,7 @@ class Body(object):
 
         #calculate derivatives
         #in polar coordinates
-        self.dP_bar_xqdC = np.array(self.bs.B.flatten())
+        self.dP_bar_xqdC = np.array(self.x_mag*self.bs.B.flatten())
         self.dP_bar_rqdC = np.array(self.r_mag*self.bs.B.flatten())
 
         #Project Polar derivatives into revolved cartisian coordinates
@@ -93,9 +99,9 @@ class Body(object):
 
     def deform(self,delta_C): 
         """returns new point locations for the given motion of the control 
-        points"""      
+        points"""   
+        delta_C[:,0] = delta_C[:,0]*self.x_mag
         self.C_bar = self.C+delta_C
-        
         delta_P = self.bs.calc(self.C_bar)
 
         self.P_bar = self.P.copy()
@@ -185,7 +191,7 @@ class Shell(object):
         else: 
             indecies = np.logical_and(abs(outer_points[:,2])<.0001, outer_points[:,1]>0)
             points = outer_points[indecies]
-            self.r_mag = 10**np.floor(np.log10(np.max(points[:,1]))) #grab the order of magnitude of the max
+            self.r_mag = 10**np.floor(np.log10(np.average(points[:,1]))) #grab the order of magnitude of the average
 
 
         self.outer_theta = self.Po[:,2]
