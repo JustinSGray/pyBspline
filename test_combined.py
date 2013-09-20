@@ -28,9 +28,9 @@ C_x = np.linspace(x_min,x_max,n_C)
 C_r = np.zeros((n_C,))
 C = np.array(zip(C_x,C_r))
 
-centerbody = Body(centerbody, controls=n_C, x_ref=1000)
-cowl = Shell(outer_cowl, inner_cowl, n_C, n_C, x_ref=1000)
-shroud = Shell(outer_shroud, inner_shroud, n_C, n_C, x_ref=1000)
+centerbody = Body(centerbody, controls=n_C, r_ref=100, x_ref=1000)
+cowl = Shell(outer_cowl, inner_cowl, n_C, n_C, r_ref=100, x_ref=1000)
+shroud = Shell(outer_shroud, inner_shroud, n_C, n_C, r_ref=100, x_ref=1000)
 
 geom = Geometry()
 geom.add(centerbody, name="centerbody")
@@ -47,7 +47,7 @@ deltaC_r[3] = 1 #second to last element, set to 10
 deltaC = np.array(zip(deltaC_x,deltaC_r))
 geom.deform(centerbody=deltaC)
 
-"""
+
 deltaC_cx = np.zeros((n_C,))
 deltaC_cr = np.zeros((n_C,))
 deltaC_cx[2:] = 1 #second to last element, set to 10
@@ -55,7 +55,7 @@ deltaC_c = np.array(zip(deltaC_cx,deltaC_cr))
 deltaC_tx = np.zeros((n_C,))
 deltaC_tr = np.zeros((n_C,))
 deltaC_t = np.array(zip(deltaC_tx,deltaC_tr))
-geom.deform(cowl=(deltaC_c,deltaC_t))"""
+geom.deform(cowl=(deltaC_c,deltaC_t))
 
 
 import pylab as p
