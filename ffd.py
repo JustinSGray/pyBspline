@@ -126,7 +126,8 @@ class Body(object):
 class Shell(object): 
     """FFD class for shell bodies which have two connected surfaces"""
     
-    def __init__(self,outer_stl,inner_stl,center_line_controls,thickness_controls,name='shell',r_ref=None): 
+    def __init__(self, outer_stl, inner_stl, center_line_controls,
+        thickness_controls, name='shell', r_ref=None, x_ref=None): 
 
         self.outer_stl = outer_stl
         self.inner_stl = inner_stl
@@ -186,6 +187,12 @@ class Shell(object):
         self.bst_i = Bspline(self.Ct,inner_points)
         
         self.name = name
+
+        if x_ref is not None: 
+            self.x_mag = float(x_ref)
+        else: 
+            self.x_mag = 10**np.floor(np.log10(np.average(outer_points[:,0])))
+
         if r_ref is not None: 
             self.r_mag = float(r_ref)
         else: 
@@ -208,10 +215,10 @@ class Shell(object):
 
         #calculate derivatives
         #in polar coordinates
-        self.dPo_bar_xqdCc = np.array(self.bsc_o.B.flatten())
+        self.dPo_bar_xqdCc = np.array(self.x_mag*self.bsc_o.B.flatten())
         self.dPo_bar_rqdCc = np.array(self.r_mag*self.bsc_o.B.flatten())
 
-        self.dPi_bar_xqdCc = np.array(self.bsc_i.B.flatten())
+        self.dPi_bar_xqdCc = np.array(self.x_mag*self.bsc_i.B.flatten())
         self.dPi_bar_rqdCc = np.array(self.r_mag*self.bsc_i.B.flatten())
 
         self.dPo_bar_rqdCt = np.array(self.r_mag*self.bst_o.B.flatten())
@@ -261,6 +268,7 @@ class Shell(object):
         """returns new point locations for the given motion of the control 
         points for center-line and thickness"""      
         
+        delta_Cc[:,0]*=self.x_mag
         self.Cc_bar = self.Cc+delta_Cc
         delta_Pc_o = self.bsc_o.calc(self.Cc_bar)
         delta_Pc_i = self.bsc_i.calc(self.Cc_bar)
