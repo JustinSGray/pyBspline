@@ -62,7 +62,7 @@ class Body(object):
 
         self.name = name
         if r_ref is not None: 
-            self.r_mag = r_ref
+            self.r_mag = float(r_ref)
         else: 
             indecies = np.logical_and(abs(geom_points[:,2])<.0001, geom_points[:,1]>0)
             points = geom_points[indecies]
@@ -181,7 +181,7 @@ class Shell(object):
         
         self.name = name
         if r_ref is not None: 
-            self.r_mag = r_ref
+            self.r_mag = float(r_ref)
         else: 
             indecies = np.logical_and(abs(outer_points[:,2])<.0001, outer_points[:,1]>0)
             points = outer_points[indecies]
