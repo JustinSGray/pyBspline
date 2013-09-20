@@ -286,27 +286,21 @@ class Geometry(object):
         point_sets = []
         for comp in self._comps: 
             if isinstance(comp,Body):
-                points = []
-                for p in comp.stl.points: 
-                    if abs(p[2]) < .0001 and p[1] > 0 : 
-                        points.append(p)
-                points = np.array(points)
+                p = comp.stl.points
+                indecies = np.logical_and(abs(p[:,2])<.0001,p[:,1]>0)
+                points = p[indecies]
                 points = points[points[:,0].argsort()]
                 point_sets.append(points)
             else: 
-                points = []
-                for p in comp.outer_stl.points: 
-                    if abs(p[2]) < .0001 and p[1] > 0 : 
-                        points.append(p)
-                points = np.array(points)
+                p = comp.outer_stl.points
+                indecies = np.logical_and(abs(p[:,2])<.0001,p[:,1]>0)
+                points = p[indecies]
                 points = points[points[:,0].argsort()]
                 point_sets.append(points)
 
-                points = [] 
-                for p in comp.inner_stl.points: 
-                    if abs(p[2]) < .0001 and p[1] > 0 : 
-                        points.append(p)
-                points = np.array(points)
+                p = comp.inner_stl.points
+                indecies = np.logical_and(abs(p[:,2])<.0001,p[:,1]>0)
+                points = p[indecies]
                 points = points[points[:,0].argsort()]
                 point_sets.append(points)
 

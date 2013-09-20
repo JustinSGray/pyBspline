@@ -33,7 +33,7 @@ class Coordinates(object):
 class Body(object): 
     """FFD class for solid bodies which only have one surface""" 
     
-    def __init__(self,stl,controls,name="body"): 
+    def __init__(self,stl,controls,name="body", r_ref=None): 
         """stl must be an STL object"""
 
         self.stl = stl
@@ -61,7 +61,12 @@ class Body(object):
         self.bs = Bspline(self.C,geom_points)
 
         self.name = name
-        self.r_mag = np.average(np.abs(geom_points[:,1]))
+        if r_ref is not None: 
+            self.r_mag = r_ref
+        else: 
+            indecies = np.logical_and(abs(geom_points[:,2])<.0001, geom_points[:,1]>0)
+            points = geom_points[indecies]
+            self.r_mag = np.average(points[:,1])
         
 
         #for revolution of 2-d profile
@@ -115,7 +120,7 @@ class Body(object):
 class Shell(object): 
     """FFD class for shell bodies which have two connected surfaces"""
     
-    def __init__(self,outer_stl,inner_stl,center_line_controls,thickness_controls,name='shell'): 
+    def __init__(self,outer_stl,inner_stl,center_line_controls,thickness_controls,name='shell',r_ref=None): 
 
         self.outer_stl = outer_stl
         self.inner_stl = inner_stl
@@ -174,7 +179,13 @@ class Shell(object):
         self.bst_o = Bspline(self.Ct,outer_points)
         self.bst_i = Bspline(self.Ct,inner_points)
         
-        self.r_mag = np.average(np.abs(outer_points[:,1]))
+        self.name = name
+        if r_ref is not None: 
+            self.r_mag = r_ref
+        else: 
+            indecies = np.logical_and(abs(outer_points[:,2])<.0001, outer_points[:,1]>0)
+            points = outer_points[indecies]
+            self.r_mag = np.average(points[:,1])
 
 
         self.outer_theta = self.Po[:,2]
