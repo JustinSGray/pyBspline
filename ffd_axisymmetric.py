@@ -58,6 +58,7 @@ class Body(object):
             self.C = controls
             self.n_controls = len(control_points)
         self.C_bar = self.C.copy()
+        self.delta_C = np.zeros(self.C.shape)
         self.bs = Bspline(self.C,geom_points)
 
         self.name = name
@@ -99,9 +100,10 @@ class Body(object):
 
     def deform(self,delta_C): 
         """returns new point locations for the given motion of the control 
-        points"""   
-        delta_C[:,0] = delta_C[:,0]*self.x_mag
-        self.C_bar = self.C+delta_C
+        points""" 
+        self.delta_C = delta_C  
+        self.delta_C[:,0] = self.delta_C[:,0]*self.x_mag
+        self.C_bar = self.C+self.delta_C
         delta_P = self.bs.calc(self.C_bar)
 
         self.P_bar = self.P.copy()
@@ -164,6 +166,8 @@ class Shell(object):
             self.Cc = center_line_controls
             self.n_c_controls = len(center_line_controls)
         self.Cc_bar = self.Cc.copy()
+        self.delta_Cc = np.zeros(self.Cc.shape)
+
 
         if isinstance(thickness_controls,int): 
             X = inner_points[:,0]
@@ -178,7 +182,7 @@ class Shell(object):
             self.Ct = thickness_controls 
             self.n_t_controls = len(thickness_controls)
         self.Ct_bar = self.Ct.copy()
-
+        self.delta_Ct = np.zeros(self.Ct.shape)
          
         self.bsc_o = Bspline(self.Cc,outer_points)
         self.bsc_i = Bspline(self.Cc,inner_points)
@@ -268,12 +272,14 @@ class Shell(object):
         """returns new point locations for the given motion of the control 
         points for center-line and thickness"""      
         
-        delta_Cc[:,0]*=self.x_mag
-        self.Cc_bar = self.Cc+delta_Cc
+        self.delta_Cc = delta_Cc
+        self.delta_Cc[:,0]*=self.x_mag
+        self.Cc_bar = self.Cc+self.delta_Cc
         delta_Pc_o = self.bsc_o.calc(self.Cc_bar)
         delta_Pc_i = self.bsc_i.calc(self.Cc_bar)
         
-        self.Ct_bar = self.Ct+delta_Ct
+        self.delta_Ct = delta_Ct
+        self.Ct_bar = self.Ct+self.delta_Ct
         delta_Pt_o = self.bst_o.calc(self.Ct_bar)
         delta_Pt_i = self.bst_i.calc(self.Ct_bar)
 
