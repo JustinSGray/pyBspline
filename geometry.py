@@ -21,7 +21,10 @@ class Geometry(object):
         self.param_vals = {}
         self.param_name_map = {}
 
+        self._callbacks = []
+
         self._needs_linerize = True
+
 
     def add(self, comp ,name=None): 
         """ addes a new component to the geometry""" 
@@ -33,7 +36,11 @@ class Geometry(object):
         self._comps.append(comp)
         self._n_comps += 1
 
+        #rebuild the param_name_map with new comp
+        self.list_parameters()
+        self._invoke_callbacks()
         self._needs_linerize = True
+
 
 
     def deform(self,**kwargs): 
@@ -66,8 +73,7 @@ class Geometry(object):
         return lines      
 
     def _linearize(self): 
-        if not self._needs_linerize: 
-            return 
+        self.list_parameters() #makes up to date param_loc_map
 
         points = []
         triangles = []
@@ -78,24 +84,24 @@ class Geometry(object):
         for comp in self._comps:
             offsets.append(i_offset)
             deriv_offsets.append(n_controls)
+            n_controls += sum(self.comp_param_count[comp])
+
             if isinstance(comp,Body): 
                 points.extend(comp.stl.points)
                 size = len(points)
-                triangles.extend(comp.stl.triangles + i_offset + 1) #tecplot wants 1 bias index, so I just increment here
+                triangles.extend(comp.stl.triangles + i_offset) 
                 i_offset = size
-                n_controls += 2*comp.n_controls #X and R for each control point
+                #X and R for each control point, except the first X and the last R (hence the -1)
             else: 
                 points.extend(comp.outer_stl.points)
                 size = len(points)
-                triangles.extend(comp.outer_stl.triangles + i_offset + 1) #tecplot wants 1 bias index, so I just increment here
+                triangles.extend(comp.outer_stl.triangles + i_offset) 
                 i_offset = size
-                n_controls += 2*comp.n_c_controls #X and R for each control point
-
+                
                 points.extend(comp.inner_stl.points)
                 size = len(points)
-                triangles.extend(comp.inner_stl.triangles + i_offset + 1) #tecplot wants 1 bias index, so I just increment here
+                triangles.extend(comp.inner_stl.triangles + i_offset) 
                 i_offset = size
-                n_controls += comp.n_t_controls # only R for each control point
 
         self.points = points
         self.n_points = len(points)
@@ -112,37 +118,38 @@ class Geometry(object):
         Jrow = []
         Jcolumn = []
         for i,p in enumerate(points): 
-
             #map point index to proper component
             if (i_comp < len(self._comps)-1) and (i == offsets[i_comp+1]): #the offset for the next comp: 
                 i_offset = i
                 i_comp += 1
                 i_deriv_offset = deriv_offsets[i_comp]
-                comp = self._comps[i_comp]
-
-
+                comp = self._comps[i_comp] 
             deriv_values = np.zeros((3*n_controls,))
-            
+
             if isinstance(comp,Body): 
+                size_C = self.comp_param_count[comp]
+                n_C = 3*sum(size_C) 
                 #x value
                 start = i_deriv_offset
-                end = start + 3*comp.n_controls
+                end = start + 3*size_C[0] #x
                 #X is only a function of the x  parameter
-                X = np.array(comp.dXqdC[i-i_offset,:])
+                X = np.array(comp.dXqdC[i-i_offset,1:])                
                 deriv_values[start:end:3] = X.flatten()  
 
                 #r value
                 start = end
-                end = start + 3*comp.n_controls
+                end = start + 3*size_C[1] #r
                 #Y,Z are only a function of the r parameter
-                Y = np.array(comp.dYqdC[i-i_offset,:])
-                Z = np.array(comp.dZqdC[i-i_offset,:])
+                Y = np.array(comp.dYqdC[i-i_offset,:-1])
+                Z = np.array(comp.dZqdC[i-i_offset,:-1])
                 deriv_values[start+1:end:3] = Y.flatten() 
                 deriv_values[start+2:end:3] = Z.flatten() 
             else: 
+                size_C = self.comp_param_count[comp]
+                n_C = 3*sum(size_C)
                 #centerline x value
                 start = i_deriv_offset
-                end = start + 3*comp.n_c_controls
+                end = start + 3*size_C[0] #x
                 #determine if point is on upper or lower surface? 
                 outer=True
                 deriv_i = i-i_offset
@@ -152,15 +159,15 @@ class Geometry(object):
 
                 #X is only a function of the x  parameter
                 if outer: 
-                    X = np.array(comp.dXoqdCc[deriv_i,:])
+                    X = np.array(comp.dXoqdCc[deriv_i,1:])
                 else: 
-                    X = np.array(comp.dXiqdCc[deriv_i,:])
+                    X = np.array(comp.dXiqdCc[deriv_i,1:])
 
                 deriv_values[start:end:3] = X.flatten()  
 
                 #centerline r value
                 start = end
-                end = start + 3*comp.n_c_controls
+                end = start + 3*size_C[1] #r
                 #Y,Z are only a function of the r parameter
                 if outer: 
                     Y = np.array(comp.dYoqdCc[deriv_i,:])
@@ -173,14 +180,13 @@ class Geometry(object):
 
                 #thickness parameter
                 start = end
-                end = start + 3*comp.n_t_controls
+                end = start + 3*size_C[2] #t
                 if outer: 
-                    Y = np.array(comp.dYoqdCt[deriv_i,:])
-                    Z = np.array(comp.dZoqdCt[deriv_i,:])
+                    Y = np.array(comp.dYoqdCt[deriv_i,:-1])
+                    Z = np.array(comp.dZoqdCt[deriv_i,:-1])
                 else: 
-                    Y = np.array(comp.dYiqdCt[deriv_i,:])
-                    Z = np.array(comp.dZiqdCt[deriv_i,:])
-
+                    Y = np.array(comp.dYiqdCt[deriv_i,:-1])
+                    Z = np.array(comp.dZiqdCt[deriv_i,:-1])
                 deriv_values[start+1:end:3] = Y.flatten() 
                 deriv_values[start+2:end:3] = Z.flatten() 
 
@@ -227,12 +233,12 @@ class Geometry(object):
         deriv_tmpl = string.Template('"dx_d${name}_${type}$i" "dy_d${name}_${type}$i" "dz_d${name}_${type}$i"')
         for comp in self._comps: 
             if isinstance(comp,Body): 
-                deriv_names.extend([deriv_tmpl.substitute({'name':comp.name,'i':str(i),'type':'X_'}) for i in xrange(0,comp.n_controls)]) #x,y,z derivs for each control point
-                deriv_names.extend([deriv_tmpl.substitute({'name':comp.name,'i':str(i),'type':'R_'}) for i in xrange(0,comp.n_controls)]) #x,y,z derivs for each control point
+                deriv_names.extend([deriv_tmpl.substitute({'name':comp.name,'i':str(i),'type':'X_'}) for i in xrange(0,comp.n_controls-1)]) #x,y,z derivs for each control point
+                deriv_names.extend([deriv_tmpl.substitute({'name':comp.name,'i':str(i),'type':'R_'}) for i in xrange(0,comp.n_controls-1)]) #x,y,z derivs for each control point
             else: 
-                deriv_names.extend([deriv_tmpl.substitute({'name':comp.name,'i':str(i),'type':'CX_'}) for i in xrange(0,comp.n_c_controls)]) #x,y,z derivs for each control point
+                deriv_names.extend([deriv_tmpl.substitute({'name':comp.name,'i':str(i),'type':'CX_'}) for i in xrange(0,comp.n_c_controls-1)]) #x,y,z derivs for each control point
                 deriv_names.extend([deriv_tmpl.substitute({'name':comp.name,'i':str(i),'type':'CR_'}) for i in xrange(0,comp.n_c_controls)]) #x,y,z derivs for each control point
-                deriv_names.extend([deriv_tmpl.substitute({'name':comp.name,'i':str(i),'type':'T_'}) for i in xrange(0,comp.n_t_controls)]) #x,y,z derivs for each control point
+                deriv_names.extend([deriv_tmpl.substitute({'name':comp.name,'i':str(i),'type':'T_'}) for i in xrange(0,comp.n_t_controls-1)]) #x,y,z derivs for each control point
 
         var_line += " ".join(deriv_names)
 
@@ -250,7 +256,7 @@ class Geometry(object):
             lines.append(line)
 
         for tri in self.triangles: 
-            line = "%d %d %d %d"%(tri[0],tri[1],tri[2],tri[2])
+            line = "%d %d %d %d"%(tri[0]+1,tri[1]+1,tri[2]+1,tri[2]+1) #tecplot wants 1 bias indecies
             lines.append(line)
 
 
@@ -259,7 +265,7 @@ class Geometry(object):
         f.close()
 
     def project_profile(self): 
-        self._linearize()
+        self.__linearize()
 
         point_sets = []
         for comp in self._comps: 
@@ -274,7 +280,7 @@ class Geometry(object):
                 indecies = np.logical_and(abs(p[:,2])<.0001,p[:,1]>0)
                 points = p[indecies]
                 points = points[points[:,0].argsort()]
-                point_sets.append(points)
+                point_ses.append(points)
 
                 p = comp.inner_stl.points
                 indecies = np.logical_and(abs(p[:,2])<.0001,p[:,1]>0)
@@ -289,46 +295,67 @@ class Geometry(object):
         """ returns a dictionary of parameters sets key'd to component names"""
 
         self.param_name_map = {}
+        self.param_loc_map = {} #locate columns of jacobian related to a specific parameter
+        self.comp_param_count = {}
         params = []
         for comp in self._comps: 
+            self.i_J = 0 #jacobian column index
             name = comp.name
+
             if isinstance(comp, Body): 
-                val = comp.delta_C[1:,0]
+                val = comp.delta_C[1:,0] #holds the root x constant
                 meta = {'value':val, 'iotype':'in', 'shape':val.shape, 
                 'desc':"axial location of control points for the ffd"}
                 tup = ('%s.X'%name, meta)
                 params.append(tup)
                 self.param_name_map[tup[0]] = val
+                self.param_loc_map[tup[0]] = self.i_J
+                n_X = val.shape[0]
+                self.i_J += n_X
 
-                val = comp.delta_C[:-1,1]
+                val = comp.delta_C[:-1,1] #holds the tip radius constant
                 meta = {'value':val, 'iotype':'in', 'shape':val.shape, 
                 'desc':"radial location of control points for the ffd"}
                 tup = ('%s.R'%name, meta)
                 params.append(tup)
                 self.param_name_map[tup[0]] = val
+                self.param_loc_map[tup[0]] = self.i_J
+                n_R = val.shape[0]
+                self.i_J += n_R
+                self.comp_param_count[comp] = (n_X,n_R)
 
 
             else: 
-                val = comp.delta_Cc[1:,0]
+                val = comp.delta_Cc[1:,0] #fixes the x location of the geometry root
                 meta = {'value':val, 'iotype':'in', 'shape':val.shape, 
                 'desc':'axial location of the control points for the centerline of the shell'}
                 tup = ('%s.X'%name, meta) 
                 params.append(tup)
                 self.param_name_map[tup[0]] = val
+                self.param_loc_map[tup[0]] = self.i_J
+                n_X = val.shape[0]
+                self.i_J += n_X
 
-                val = comp.delta_Cc[:-1,1]
+                val = comp.delta_Cc[:,1] #can vary all centerlines
                 meta = {'value':val, 'iotype':'in', 'shape':val.shape, 
                 'desc':'radial location of the control points for the centerline of the shell'}
                 tup = ('%s.R'%name, meta) 
                 params.append(tup)
                 self.param_name_map[tup[0]] = val
+                self.param_loc_map[tup[0]] = self.i_J
+                n_R = val.shape[0]
+                self.i_J += n_R
 
-                val = comp.delta_Ct[:-1,1]
+                val = comp.delta_Ct[:-1,1] #except last R, to keep tip size fixed
                 meta = {'value':val, 'iotype':'in', 'shape':val.shape, 
                 'desc':'thickness of the shell at each axial station'}
                 tup = ('%s.thickness'%name, meta) 
                 params.append(tup)
                 self.param_name_map[tup[0]] = val
+                self.param_loc_map[tup[0]] = self.i_J
+                n_T = val.shape[0]
+                self.comp_param_count[comp] = (n_X,n_R,n_T)
+                self.i_J += n_T
 
 
         return params

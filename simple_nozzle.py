@@ -56,6 +56,9 @@ geom.writeSTL('new.stl', ascii=False)
 print "STL Write Time: ", time.time()-start_time
 start_time = time.time()
 
+geom.writeFEPOINT('new.fepoint')
+
+exit()
 
 import pylab as p
 profile = geom.project_profile()
