@@ -43,7 +43,7 @@ deltaC_cr[:] = 1 #second to last element, set to 10
 deltaC_c = np.array(zip(deltaC_cx,deltaC_cr))
 deltaC_tx = np.zeros((n_c,))
 deltaC_tr = np.zeros((n_c,))
-deltaC_tr[:-1] = .25 #second to last element, set to 10
+deltaC_tr[:-1] = 2 #second to last element, set to 10
 deltaC_t = np.array(zip(deltaC_tx,deltaC_tr))
 geom.deform(cowl=(deltaC_c,deltaC_t))
 
@@ -58,7 +58,7 @@ start_time = time.time()
 
 geom.writeFEPOINT('new.fepoint')
 
-exit()
+
 
 import pylab as p
 profile = geom.project_profile()

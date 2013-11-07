@@ -265,7 +265,7 @@ class Geometry(object):
         f.close()
 
     def project_profile(self): 
-        self.__linearize()
+        self._linearize()
 
         point_sets = []
         for comp in self._comps: 
@@ -280,7 +280,7 @@ class Geometry(object):
                 indecies = np.logical_and(abs(p[:,2])<.0001,p[:,1]>0)
                 points = p[indecies]
                 points = points[points[:,0].argsort()]
-                point_ses.append(points)
+                point_sets.append(points)
 
                 p = comp.inner_stl.points
                 indecies = np.logical_and(abs(p[:,2])<.0001,p[:,1]>0)

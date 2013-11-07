@@ -86,11 +86,11 @@ class STL(object):
         if not os.path.exists(pkl_folder): 
             os.mkdir(pkl_folder)
 
-        if os.path.exists(pkl_file_name): 
-            self.facets, self.stl_i0, self.stl_i1, self.p_count, self.stl_indecies, \
-            self.stl_i0, self.points, self.point_indecies, \
-            self.triangles = cPickle.load(open(pkl_file_name))
-            return 
+        # if os.path.exists(pkl_file_name): 
+        #     self.facets, self.stl_i0, self.stl_i1, self.p_count, self.stl_indecies, \
+        #     self.stl_i0, self.points, self.point_indecies, \
+        #     self.triangles = cPickle.load(open(pkl_file_name))
+        #     return 
 
         ascii = (stl_file.readline().strip().split()[0] == 'solid')
         stl_file.seek(0)
