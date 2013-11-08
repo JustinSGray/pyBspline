@@ -38,6 +38,7 @@ class Geometry(object):
 
         #rebuild the param_name_map with new comp
         self.list_parameters()
+        self._aggregate_points()
         self._invoke_callbacks()
         self._needs_linerize = True
 
@@ -52,29 +53,9 @@ class Geometry(object):
                 comp.deform(delta_C)
             else:
                 comp.deform(*delta_C)
+            self._aggregate_points()
 
-    def _build_ascii_stl(self, facets): 
-        """returns a list of ascii lines for the stl file """
-
-        lines = ['solid ffd_geom',]
-        for facet in facets: 
-            lines.append(ASCII_FACET.format(face=facet))
-        lines.append('endsolid ffd_geom')
-        return lines
-
-    def _build_binary_stl(self, facets):
-        """returns a string of binary binary data for the stl file"""
-
-        lines = [struct.pack(BINARY_HEADER,b'Binary STL Writer',len(facets)),]
-        for facet in facets: 
-            facet = list(facet)
-            facet.append(0) #need to pad the end with a unsigned short byte
-            lines.append(struct.pack(BINARY_FACET,*facet))  
-        return lines      
-
-    def _linearize(self): 
-        self.list_parameters() #makes up to date param_loc_map
-
+    def _aggregate_points(self): 
         points = []
         triangles = []
         i_offset = 0
@@ -103,12 +84,39 @@ class Geometry(object):
                 triangles.extend(comp.inner_stl.triangles + i_offset) 
                 i_offset = size
 
-        self.points = points
+        self.points = np.array(points)
+        self.n_controls = n_controls
         self.n_points = len(points)
         self.triangles = triangles
         self.n_triangles = len(triangles)
         self.offsets = offsets
         self.deriv_offsets = deriv_offsets
+
+    def _build_ascii_stl(self, facets): 
+        """returns a list of ascii lines for the stl file """
+
+        lines = ['solid ffd_geom',]
+        for facet in facets: 
+            lines.append(ASCII_FACET.format(face=facet))
+        lines.append('endsolid ffd_geom')
+        return lines
+
+    def _build_binary_stl(self, facets):
+        """returns a string of binary binary data for the stl file"""
+
+        lines = [struct.pack(BINARY_HEADER,b'Binary STL Writer',len(facets)),]
+        for facet in facets: 
+            facet = list(facet)
+            facet.append(0) #need to pad the end with a unsigned short byte
+            lines.append(struct.pack(BINARY_FACET,*facet))  
+        return lines      
+
+    def linearize(self): 
+        if not self._needs_linerize: 
+            return 
+        self.list_parameters() #makes up to date param_loc_map
+        self._aggregate_points()
+
 
         i_comp = 0 #keep track of which comp the points came from
         comp = self._comps[0]
@@ -117,14 +125,14 @@ class Geometry(object):
         Jdata = []
         Jrow = []
         Jcolumn = []
-        for i,p in enumerate(points): 
+        for i,p in enumerate(self.points): 
             #map point index to proper component
-            if (i_comp < len(self._comps)-1) and (i == offsets[i_comp+1]): #the offset for the next comp: 
+            if (i_comp < len(self._comps)-1) and (i == self.offsets[i_comp+1]): #the offset for the next comp: 
                 i_offset = i
                 i_comp += 1
-                i_deriv_offset = deriv_offsets[i_comp]
+                i_deriv_offset = self.deriv_offsets[i_comp]
                 comp = self._comps[i_comp] 
-            deriv_values = np.zeros((3*n_controls,))
+            deriv_values = np.zeros((3*self.n_controls,))
 
             if isinstance(comp,Body): 
                 size_C = self.comp_param_count[comp]
@@ -190,8 +198,16 @@ class Geometry(object):
                 deriv_values[start+1:end:3] = Y.flatten() 
                 deriv_values[start+2:end:3] = Z.flatten() 
 
-            Jdata.append(deriv_values)
-        self.J = np.array(Jdata)
+            Jdata.append(deriv_values) 
+        self.J = np.array(Jdata) #weird format used for tecplot fepoint, x,y,z interlaced
+        self.Jx = self.J[:,0::3]
+        self.Jy = self.J[:,1::3]
+        self.Jz = self.J[:,2::3]
+
+        self.JxT = self.Jx.T
+        self.JyT = self.Jy.T
+        self.JzT = self.Jy.T
+
         self._needs_linerize = False
 
     def writeSTL(self, file_name, ascii=False): 
@@ -222,7 +238,7 @@ class Geometry(object):
 
         jacobian should have a shape of (len(points),len(control_points))"""
         
-        self._linearize()
+        self.linearize()
   
         
         lines = ['TITLE = "FFD_geom"',]
@@ -265,7 +281,7 @@ class Geometry(object):
         f.close()
 
     def project_profile(self): 
-        self._linearize()
+        self.linearize()
 
         point_sets = []
         for comp in self._comps: 
@@ -273,18 +289,21 @@ class Geometry(object):
                 p = comp.stl.points
                 indecies = np.logical_and(abs(p[:,2])<.0001,p[:,1]>0)
                 points = p[indecies]
+                points = points[points[:,1].argsort()]
                 points = points[points[:,0].argsort()]
                 point_sets.append(points)
             else: 
                 p = comp.outer_stl.points
                 indecies = np.logical_and(abs(p[:,2])<.0001,p[:,1]>0)
                 points = p[indecies]
+                points = points[points[:,1].argsort()]
                 points = points[points[:,0].argsort()]
                 point_sets.append(points)
 
                 p = comp.inner_stl.points
                 indecies = np.logical_and(abs(p[:,2])<.0001,p[:,1]>0)
                 points = p[indecies]
+                points = points[points[:,1].argsort()]
                 points = points[points[:,0].argsort()]
                 point_sets.append(points)
 
@@ -405,7 +424,7 @@ class Geometry(object):
 
     #methods for IStaticGeometry
     def get_visualization_data(self, wv):
-        self._linearize()
+        self.linearize()
 
         xyzs = np.array(self.points).flatten().astype(np.float32)
         tris = np.array(self.triangles).flatten().astype(np.int32)
