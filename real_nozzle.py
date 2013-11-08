@@ -35,7 +35,7 @@ start_time = time.time()
 
 deltaC_x = np.zeros((n_c,))
 deltaC_r = np.zeros((n_c,))
-deltaC_x[-2:] = 2 
+#deltaC_x[-2:] = 2 
 deltaC = np.array(zip(deltaC_x,deltaC_r))
 geom.deform(plug=deltaC)
 
@@ -68,7 +68,7 @@ profile = geom.project_profile()
 for point_set in profile: 
     X = point_set[:,0]
     Y = point_set[:,1]
-    p.scatter(X,Y)
+    //p.scatter(X,Y)
     p.plot(X,Y)
 
 p.show()

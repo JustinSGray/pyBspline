@@ -34,18 +34,18 @@ start_time = time.time()
 
 deltaC_x = np.zeros((n_c,))
 deltaC_r = np.zeros((n_c,))
-deltaC_x[3:] = 2 #second to last element, set to 10
+# deltaC_x[3:] = 2 #second to last element, set to 10
 deltaC = np.array(zip(deltaC_x,deltaC_r))
 geom.deform(plug=deltaC)
 
 
 deltaC_cx = np.zeros((n_c,))
 deltaC_cr = np.zeros((n_c,))
-deltaC_cr[:] = 3 #second to last element, set to 10
+# deltaC_cr[:] = 3 #second to last element, set to 10
 deltaC_c = np.array(zip(deltaC_cx,deltaC_cr))
 deltaC_tx = np.zeros((n_c,))
 deltaC_tr = np.zeros((n_c,))
-deltaC_tr[:-1] = 1 #second to last element, set to 10
+# deltaC_tr[:-1] = 1 #second to last element, set to 10
 deltaC_t = np.array(zip(deltaC_tx,deltaC_tr))
 geom.deform(cowl=(deltaC_c,deltaC_t))
 
